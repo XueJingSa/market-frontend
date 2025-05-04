@@ -6,7 +6,7 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/NavHeader.vue'), // 父组件容器
-    redirect: '/home',
+    redirect: '/checkout',
     children: [
       // 首页
       {
@@ -27,7 +27,14 @@ const routes = [
         name: 'UserProfile',
         component: () => import('@/views/UserProfile.vue'),
         meta: { requiresAuth: true }
-      }
+      },
+      // 显示一下这个页面暂时
+      {
+        path: '/checkout',
+        name: 'CheckoutPage',
+        component: () => import('@/views/CheckoutPage.vue'),
+        meta: { requiresAuth: true }
+      },
     ]
   },
 
