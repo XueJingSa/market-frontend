@@ -76,7 +76,8 @@ export default {
               name: '防染色吸色护色吸色片',
               originalPrice: 54.00,
               price: 24.90,
-              quantity: 1
+              quantity: 1,
+              category: 1,
             }
           ],
           totalPrice: 19.90,
@@ -93,14 +94,16 @@ export default {
               name: 'Word 排版表格代做制作文档格式修改打字服务文字录入 PDF 转换编辑',
               originalPrice: 10.00,
               price: 5.00,
-              quantity: 6
+              quantity: 6,
+              category: 2,
             },
             {
               image: require('@/assets/images/bread.jpg'),
               name: '【活动价】Word 排版格式修改生成目录页眉页脚页码整篇排版字体段落人工服务 [交易快照]',
               originalPrice: 10.00,
               price: 5.00,
-              quantity: 1
+              quantity: 1,
+              category: 3,
             }
           ],
           totalPrice: 28.00,
