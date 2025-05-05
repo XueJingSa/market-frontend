@@ -6,7 +6,7 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/NavHeader.vue'), // 父组件容器
-    redirect: '/orders',
+    redirect: '/login',
     children: [
       // 首页
       {
@@ -45,6 +45,11 @@ const routes = [
         path: '/search',
         name: 'SearchResults',
         component: () => import('@/views/SearchResults.vue')
+      },
+      {
+        path: '/login',
+        name: 'LoginRegister',
+        component: () => import('@/views/LoginRegister.vue')
       },
     ]
   },

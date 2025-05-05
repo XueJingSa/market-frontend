@@ -82,7 +82,6 @@ export default {
           totalPrice: 19.90,
           shippingFee: 0.00,
           status: '买家已付款',
-          repurchase: false
         },
         {
           date: '2025-05-04',
@@ -107,7 +106,6 @@ export default {
           totalPrice: 28.00,
           shippingFee: 0.00,
           status: '买家已付款',
-          repurchase: true
         }
       ],
       page: 1,
