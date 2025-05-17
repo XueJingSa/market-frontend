@@ -31,30 +31,33 @@
           <el-tabs v-model="activeTab" class="custom-tabs">
             <el-tab-pane label="登录" name="login" class="custom-tab-pane">
               <el-form label-width="0px">
-                <el-form-item>
-                  <el-input placeholder="账号名" class="custom-input"></el-input>
+                <el-form-item prop="userName">
+                  <el-input v-model="loginForm.userName" placeholder="账号名" class="custom-input"></el-input>
                 </el-form-item>
-                <el-form-item>
-                  <el-input type="password" placeholder="请输入登录密码" class="custom-input"></el-input>
+                <el-form-item prop="userPassword">
+                  <el-input v-model="loginForm.userPassword" type="password" placeholder="请输入登录密码"
+                    class="custom-input"></el-input>
                 </el-form-item>
                 <el-form-item style="margin-top: 10px;">
-                  <el-button type="primary" style="width: 100%;height: 40px;">登录</el-button>
+                  <el-button @click="handleLogin" type="primary" style="width: 100%;height: 40px;">登录</el-button>
                 </el-form-item>
               </el-form>
             </el-tab-pane>
             <el-tab-pane label="注册" name="register" class="custom-tab-pane">
               <el-form label-width="0px">
-                <el-form-item>
-                  <el-input placeholder="账号名" class="custom-input"></el-input>
+                <el-form-item prop="userName">
+                  <el-input v-model="registerForm.userName" placeholder="账号名" class="custom-input"></el-input>
                 </el-form-item>
-                <el-form-item>
-                  <el-input type="password" placeholder="请设置登录密码" class="custom-input"></el-input>
+                <el-form-item prop="userPassword">
+                  <el-input v-model="registerForm.userPassword" type="password" placeholder="请设置登录密码"
+                    class="custom-input"></el-input>
                 </el-form-item>
-                <el-form-item>
-                  <el-input type="password" placeholder="请再次输入密码验证" class="custom-input"></el-input>
+                <el-form-item prop="checkPassword">
+                  <el-input v-model="registerForm.checkPassword" type="password" placeholder="请再次输入密码验证"
+                    class="custom-input"></el-input>
                 </el-form-item>
                 <el-form-item style="margin-top: 10px;">
-                  <el-button type="primary" style="width: 100%;height: 40px;">注册</el-button>
+                  <el-button type="primary" style="width: 100%;height: 40px;" @click="handleRegister">注册</el-button>
                 </el-form-item>
               </el-form>
             </el-tab-pane>
@@ -66,6 +69,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+import { callSuccess, callError } from '@/api/index';
 export default {
   data() {
     return {
@@ -77,7 +82,18 @@ export default {
         require('@/assets/images/avatar2.png'),
         require('@/assets/images/avatar3.png'),
         require('@/assets/images/avatar4.png')
-      ]
+      ],
+      // 登录表单
+      loginForm: {
+        userName: '',
+        userPassword: ''
+      },
+      // 注册表单
+      registerForm: {
+        userName: '',
+        userPassword: '',
+        checkPassword: ''
+      }
     };
   },
   methods: {
@@ -87,6 +103,67 @@ export default {
     },
     handleClose(done) {
       done();
+    },
+    // 处理登录
+    async handleLogin() {
+      try {
+        if (!this.loginForm.userName || !this.loginForm.userPassword) {
+          callError('请输入用户名和密码');
+          return;
+        }
+
+        const response = await axios.post('/api/user/login', {
+          userName: this.loginForm.userName,
+          password: this.loginForm.userPassword
+        });
+        console.log(response.data)
+        if (response.data.code === 1) {
+          callSuccess('登录成功');
+          localStorage.setItem('token', response.data.data.token);
+          this.$router.push('/home');
+        } else {
+          callError(response.data.message || '登录失败');
+        }
+      } catch (error) {
+        callError('网络错误，请稍后重试');
+        console.error('登录错误:', error);
+      }
+    },
+
+    // 处理注册
+    async handleRegister() {
+      try {
+        if (!this.registerForm.userName || !this.registerForm.userPassword) {
+          callError('请输入用户名和密码');
+          return;
+        }
+
+        if (this.registerForm.userPassword !== this.registerForm.checkPassword) {
+          callError('两次输入的密码不一致');
+          return;
+        }
+
+        const response = await axios.post('/api/user/register', {
+          userName: this.registerForm.userName,
+          userPassword: this.registerForm.userPassword,
+          checkPassword: this.registerForm.checkPassword
+        });
+
+        if (response.data.code === 1) {
+          callSuccess('注册成功');
+          this.activeTab = 'login';
+          this.registerForm = {
+            userName: '',
+            userPassword: '',
+            checkPassword: ''
+          };
+        } else {
+          callError(response.data.message || '注册失败');
+        }
+      } catch (error) {
+        callError('网络错误，请稍后重试');
+        console.error('注册错误:', error);
+      }
     }
   }
 };
