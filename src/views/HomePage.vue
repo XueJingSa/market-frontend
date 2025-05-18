@@ -360,19 +360,18 @@ export default {
         });
         
         const response = await axios.post('/api/api/cart/add', {
-          user_id: this.$store.state.UserModules.userId,
+          // user_id: this.$store.state.UserModules.userId,
           productId: prod.product_id,
           num: parseInt(quantity),
           unitPrice:prod.price
         },
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
             'token': this.$store.state.UserModules.token
           }
         });
 
-        if (response.data.code === 0) {
+        if (response.data.code === 1) {
           this.$message.success('加入购物车成功');
         } else {
           this.$message.error(response.data.message);

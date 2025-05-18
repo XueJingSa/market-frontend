@@ -157,8 +157,8 @@ export default {
     async removeItem(id, detailId) {
       const resp = await axios.post('/api/api/cart/delete', null, {
         params: {
-          detailId: detailId,
-          userId: this.$store.state.UserModules.userId
+          cartDetailId: detailId,
+          // userId: this.$store.state.UserModules.userId
         },
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -212,43 +212,21 @@ export default {
       }).catch(() => {});
     },
     async goToCheckout() {
-      try {
-        // 1. 准备选中的商品
-        const selectedItems = this.cartItems
-          .filter(item => item.checked && item.available)
-          .map(item => ({
-            productId: item.product_id,
-            quantity: item.quantity
-          }));
+      
+      // 1. 筛选出已勾选的项
+      const selectedDetails = this.cartItems
+        .filter(item => item.checked)
+        .map(item => item.detail_id);
 
-        if (selectedItems.length === 0) {
-          return this.$message.warning('请选择有效的商品');
-        }
-
-        // 2. 调用下单接口
-        const order = await axios.post('/api/api/order/create', {
-          userId: this.$store.state.UserModules.userId,
-          items: selectedItems
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-            'token': this.$store.state.UserModules.token
-          }
-        });
-
-        if (order.data.code === 1) {
-          this.$message.success('订单创建成功');
-          this.$router.push({ 
-            name: 'CheckoutPage',
-            params: { orderId: order.data.data.orderId }
-          });
-        } else {
-          this.$message.error('下单失败：' + order.data.msg);
-        }
-      } catch (err) {
-        console.error(err);
-        this.$message.error('网络异常，请稍后重试');
+      if (!selectedDetails.length) {
+        return this.$message.warning('请先选择要结算的商品');
       }
+
+      // 2. 直接把数组放到 query 里
+      this.$router.push({
+        name: 'CheckoutPage',
+        query: { cartDetailIds: selectedDetails }
+      });
     }
   }
 }

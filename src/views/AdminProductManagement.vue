@@ -134,7 +134,7 @@
       }
     },
     mounted() {
-      this.fetchList()
+      this.onSearch()
     },
     methods: {
       formatCategory(row) {
@@ -174,11 +174,8 @@
       },
       onPageChange(p) {
         this.page = p;
-        if (this.isSearching) {
           this.onSearch();
-        } else {
-          this.fetchList();
-        }
+
       },
       async onSearch() {
         try {
@@ -229,24 +226,57 @@
       openDialog(row) {
         if(row) {
           this.isEdit=true
-          this.form = { ...row }
+          this.form = {
+            productId: row?.product_id || null,
+            name: '',
+            category: null,
+            price: null,
+            stock: null,
+            imageUrl: '',
+            description: '',
+            isDiscontinued: null
+          };
         } else {
           this.isEdit=false
           this.form = { product_id:null, name:'', category:null, price:0, stock:0, unit:'', imageUrl:'', description:'', isDiscontinued:0 }
         }
+        this.dialogTitle = this.isEdit ? '修改商品' : '添加商品';
         this.dialogVisible = true
       },
       async onSubmit() {
         try {
-          const payload = {
-            category: this.form.category,
-            description: this.form.description,
-            imageUrl: this.form.imageUrl,
-            name: this.form.name,
-            price: this.form.price,
-            productId: this.form.product_id,
-            stock: this.form.stock
+          let payload = {};
+          if (!this.isEdit) {
+              payload = {
+              category: this.form.category,
+              description: this.form.description,
+              imageUrl: this.form.imageUrl,
+              name: this.form.name,
+              price: this.form.price,
+              stock: this.form.stock,
+              isDiscontinued: 0
+            }
           }
+          else{
+            payload.productId = this.form.productId;
+            if (this.form.name)           payload.name = this.form.name;
+            if (this.form.category !== null) payload.category = this.form.category;
+            if (this.form.price !== null)  payload.price = this.form.price;
+            if (this.form.stock !== null)  payload.stock = this.form.stock;
+            if (this.form.imageUrl)       payload.imageUrl = this.form.imageUrl;
+            if (this.form.description)    payload.description = this.form.description;
+            // if (this.form.isDiscontinued !== null) payload.isDiscontinued = this.form.isDiscontinued;
+          }
+          // const payload = {
+          //   category: this.form.category,
+          //   description: this.form.description,
+          //   imageUrl: this.form.imageUrl,
+          //   name: this.form.name,
+          //   price: this.form.price,
+          //   productId: this.form.product_id,
+          //   stock: this.form.stock,
+          //   isDiscontinued: 0
+          // }
           
           const endpoint = this.isEdit 
             ? '/api/api/product/updateProduct' 
@@ -262,7 +292,7 @@
           if(resp.data.code === 1) {
             this.$message.success(this.isEdit ? '修改成功' : '添加成功')
             this.dialogVisible = false
-            this.fetchList()
+            this.onSearch()
           } else {
             this.$message.error(resp.data.msg || (this.isEdit ? '修改失败' : '添加失败'))
           }
@@ -289,7 +319,7 @@
           if(resp.data.code === 1) {
             row.isDiscontinued = isDiscontinued
             this.$message.success(isDiscontinued === 0 ? '商品已上架' : '商品已下架')
-            this.fetchList()
+            this.onSearch()
           } else {
             this.$message.error(resp.data.msg || (isDiscontinued === 0 ? '上架失败' : '下架失败'))
           }
