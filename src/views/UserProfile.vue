@@ -1,9 +1,11 @@
 <template>
   <div class="my-order-container">
     <div class="user-info">
-      <el-avatar :size="80" :src="isLoggedIn ? avatars[avatarSrc] : avatars[0]" />
+      <el-avatar :size="80" :src="avatars[0]" @click="triggerFileInput" style="cursor: pointer;" />
+      <!-- file input -->
+      <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none;" accept="image/*" />
       <div class="user-details">
-        <div v-if="isLoggedIn" class="nickname">{{ nickname }}</div>
+        <div v-if="isLoggedIn" class="nickname">{{ this.$store.state.UserModules.userName }}</div>
         <router-link v-else to="/login" class="login-text">登录</router-link>
         <div v-if="isLoggedIn" class="address-section">
           <span @click="showAddressDialog = true">收货地址</span>
@@ -61,6 +63,8 @@
 <script>
 import { ElAvatar, ElInput } from 'element-plus';
 import * as echarts from 'echarts';
+import { callSuccess, callError } from '@/api/index';
+import axios from 'axios';
 export default {
   components: {
     ElAvatar,
@@ -73,7 +77,7 @@ export default {
       nickname: 'tbNick_ci9aa',
       userId: 'tb6292101164',
       address: '',
-      avatarSrc: 1,
+      avatarUrl: '',
       unpaidCount: 0,
       paidCount: 1,
       completeCount: 1,
@@ -177,10 +181,59 @@ export default {
     this.initCharts();
   },
   methods: {
-    addAddress() {
+    async addAddress() {
       if (this.newAddress.trim() !== '') {
         this.addresses.push(this.newAddress);
+        const response = await axios.post('/api/user/update', {
+          address: this.newAddress,
+          userId: this.$store.state.UserModules.userId
+        });
+        if (response.data.code != 1) {
+          callError(response.data.message || '添加失败');
+        }
         this.newAddress = '';
+      }
+    },
+    // 触发文件选择
+    triggerFileInput() {
+      this.$refs.fileInput.click();
+    },
+
+    // 处理文件上传
+    async handleFileUpload(event) {
+      const file = event.target.files[0]; // 获取选中的文件
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        callError('请选择图片文件！');
+        return;
+      }
+
+      // 显示预览（可选）
+      this.avatarUrl = URL.createObjectURL(file);
+
+      // 构造 FormData
+      const formData = new FormData();
+      formData.append('file', file); // 参数名必须和后台一致（这里是 'file'）
+
+      try {
+        // 调用上传接口
+        const response = await axios.post('/api/user/avatar/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.data.code === 1) {
+          callSuccess('头像上传成功！');
+          this.avatarUrl = response.data.data.url;
+        } else {
+          callError(response.data.message || '上传失败');
+        }
+      } catch (error) {
+        callError('上传失败，请重试');
+        console.error('上传错误:', error);
+      } finally {
+        event.target.value = '';
       }
     },
     initCharts() {

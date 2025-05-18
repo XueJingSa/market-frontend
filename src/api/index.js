@@ -3,7 +3,7 @@ import { ElMessage } from "element-plus";
 export function callError(message) {
     return ElMessage({
         message: message,
-        type: 'info',
+        type: 'error',
     });
 }
 

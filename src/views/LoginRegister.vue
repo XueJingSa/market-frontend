@@ -1,31 +1,6 @@
 <template>
   <div class="login-page">
     <div class="main-content">
-      <div class="avatar-section">
-        <el-card style="width: 400px;height: 350px;margin-left: 30px;">
-          <template #header>
-            <div style="font-size: 22px; text-align: center;">选择头像</div>
-          </template>
-          <!-- 默认显示的大头像 -->
-          <div style="text-align: center; margin-bottom: 20px;margin-top: 30px;">
-            <el-avatar :src="selectedAvatar || avatars[0]" :size="100" @click="dialogVisible = true"
-              style="cursor: pointer;" />
-          </div>
-
-          <!-- 头像选择对话框 -->
-          <el-dialog v-model="dialogVisible" title="选择头像" width="30%" :before-close="handleClose">
-            <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-              <el-avatar v-for="(avatar, index) in avatars" :key="index" :src="avatar" :size="60"
-                @click="handleAvatarSelect(avatar)" style="cursor: pointer; margin: 10px;" />
-            </div>
-            <template #footer>
-              <el-button @click="dialogVisible = false">取消</el-button>
-            </template>
-          </el-dialog>
-
-          <div style="text-align: center;">注册可选头像</div>
-        </el-card>
-      </div>
       <div class="login-register-section">
         <el-card style="width: 400px;height: 350px;margin-right: 20px;">
           <el-tabs v-model="activeTab" class="custom-tabs">
@@ -119,7 +94,19 @@ export default {
         console.log(response.data)
         if (response.data.code === 1) {
           callSuccess('登录成功');
-          localStorage.setItem('token', response.data.data.token);
+          const token = response.data.data.token;
+          const userId = response.data.data.userId;
+          const userName = response.data.data.username;
+          const userAddr = response.data.data.address;
+
+          localStorage.setItem('token', token);
+          localStorage.setItem('userId', userId);
+          localStorage.setItem('userName', userName);
+          localStorage.setItem('userAddr', userAddr);
+
+          this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr });
+
+          console.log(this.$store.state.UserModules.userId, this.$store.state.UserModules.token)
           this.$router.push('/home');
         } else {
           callError(response.data.message || '登录失败');
@@ -158,7 +145,7 @@ export default {
             checkPassword: ''
           };
         } else {
-          callError(response.data.message || '注册失败');
+          callError(response.data.msg || '注册失败');
         }
       } catch (error) {
         callError('网络错误，请稍后重试');
@@ -201,11 +188,12 @@ export default {
 
 .main-content {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 20px;
   width: 1000px;
   height: 500px;
-  margin-top: 20px;
+  margin: 20px auto;
   background-color: white;
   padding: 20px;
   border-radius: 8px;
@@ -246,7 +234,7 @@ export default {
 }
 
 .login-register-section {
-  flex: 1;
+  justify-content: center;
 }
 
 .password-container {
