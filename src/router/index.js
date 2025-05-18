@@ -83,10 +83,27 @@ const routes = [
     name: 'LoginRegister',
     component: () => import('@/views/LoginRegister.vue')
   },
+  // {
+  //   path: '/adminProduct',
+  //   name: 'AdminProduct',
+  //   component: () => import('@/views/AdminProductManagement.vue')
+  // },
   {
-    path: '/adminProduct',
-    name: 'AdminProduct',
-    component: () => import('@/views/AdminProductManagement.vue')
+    path: '/admin',
+    component: () => import('@/components/AdminNavHeader.vue'), // 父组件容器
+    redirect: '/adminProduct',
+    children: [
+      {
+        path: '/adminProduct',
+        name: 'AdminProduct',
+        component: () => import('@/views/AdminProductManagement.vue')
+      },
+      {
+        path: '/adminOrder',
+        name: 'AdminOrder',
+        component: () => import('@/views/AdminOrderManagement.vue')
+      },
+    ]
   },
 ]
 
