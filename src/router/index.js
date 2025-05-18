@@ -6,7 +6,7 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/NavHeader.vue'), // 父组件容器
-    redirect: '/home',
+    redirect: '/login',
     children: [
       // 首页
       {
@@ -27,7 +27,31 @@ const routes = [
         name: 'UserProfile',
         component: () => import('@/views/UserProfile.vue'),
         meta: { requiresAuth: true }
-      }
+      },
+      // 显示一下这个页面暂时
+      {
+        path: '/checkout',
+        name: 'CheckoutPage',
+        component: () => import('@/views/CheckoutPage.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/orders',
+        name: 'MyOrders',
+        component: () => import('@/views/MyOrders.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/search',
+        name: 'SearchResults',
+        component: () => import('@/views/SearchResults.vue')
+      },
+      {
+        path: '/login',
+        name: 'LoginRegister',
+        component: () => import('@/views/LoginRegister.vue')
+      },
+      
     ]
   },
 
