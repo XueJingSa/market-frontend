@@ -59,7 +59,11 @@ const routes = [
     name: 'LoginRegister',
     component: () => import('@/views/LoginRegister.vue')
   },
-
+  {
+    path: '/adminProduct',
+    name: 'AdminProduct',
+    component: () => import('@/views/AdminProductManagement.vue')
+  },
 ]
 
 const router = createRouter({

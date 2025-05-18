@@ -49,78 +49,116 @@
           v-for="cat in categories"
           :key="cat.id"
           :label="cat.name"
-          :value="cat.id"
+          :value="cat.name"
         />
       </el-select>
       <el-select
-        v-model="priceSort"
-        placeholder="价格排序"
+        v-model="orderBy"
+        placeholder="排序字段"
         clearable
         class="filter-select"
       >
-        <el-option label="从低到高" value="asc" />
-        <el-option label="从高到低" value="desc" />
+        <el-option label="价格" value="price" />
       </el-select>
       <el-select
-        v-model="stockFilter"
-        placeholder="库存状态"
+        v-model="sort"
+        placeholder="排序方式"
         clearable
         class="filter-select"
       >
-        <el-option label="有货" value="in_stock" />
-        <el-option label="库存紧张" value="low_stock" />
-        <el-option label="缺货" value="out_of_stock" />
+        <el-option label="升序" value="asc" />
+        <el-option label="降序" value="desc" />
+      </el-select>
+      <el-select
+        v-model="isDiscontinued"
+        placeholder="商品状态"
+        clearable
+        class="filter-select"
+      >
+        <el-option label="上架" :value="0" />
+        <el-option label="下架" :value="1" />
       </el-select>
     </div>
 
     <!-- 商品展示 -->
     <div class="product-grid">
-      <div
-        class="product-card"
-        v-for="prod in products"
-        :key="prod.product_id"
-      >
-        <img :src="prod.image_url" :alt="prod.name" class="product-image" @click="goToDetail(prod.product_id)"/>
-        <div class="product-info">
-          <div class="product-meta">
-            <span>{{ getCategoryName(prod.category) }}</span>
-            <span>{{ formatTime(prod.create_time) }}</span>
-          </div>
-          <div class="product-name" style="font-weight: bold;">{{ prod.name }}</div>
-          <!-- <div class="product-desc" v-if="prod.description">
-            {{ prod.description }}
-          </div> -->
-          <div class="product-bottom">
-            <div class="price-stock">
-              <span class="product-price">¥{{ prod.price.toFixed(2) }}</span>
-              <span
-                class="product-stock"
-                :class="{ 'low-stock': prod.stock < 10 }"
-              >
-                {{ prod.stock > 0
-                  ? prod.stock < 10
-                    ? '库存紧张'
-                    : '有货'
-                  : '缺货' }}
-              </span>
-            </div>
-            <button
-              class="add-btn"
-              @click="confirmAddToCart(prod)"
-              :disabled="prod.stock <= 0"
-            >
-              {{ prod.stock > 0 ? '加入购物车' : '已售罄' }}
-            </button>
-          </div>
-        </div>
+      <div class="product-card" v-for="prod in products" :key="prod.product_id">
+    <!-- 已下架 Badge -->
+    <div v-if="prod.isDiscontinued === 1" class="badge-overlay">
+      <el-tag type="danger">已下架</el-tag>
+    </div>
+
+    <!-- 商品图片 -->
+    <img
+      :src="prod.image_url"
+      :alt="prod.name"
+      class="product-image"
+      @click="goToDetail(prod.product_id)"
+    />
+
+    <!-- 商品信息 -->
+    <div class="product-info">
+      <div class="product-meta">
+        <span>{{ getCategoryName(prod.category) }}</span>
+        <span>{{ formatTime(prod.create_time) }}</span>
       </div>
+
+      <div class="product-name">{{ prod.name }}</div>
+
+      <div class="product-bottom">
+        <div class="price-stock">
+          <span class="product-price">¥{{ prod.price.toFixed(2) }}</span>
+          <span
+            class="product-stock"
+            :class="{
+              'low-stock': prod.stock === -1,
+              'in-stock': prod.stock === -2,
+              'out-of-stock': prod.stock === 0
+            }"
+          >
+            <!-- 根据脱敏后 stock 显示对应文案 -->
+            {{ prod.stock === 0
+              ? '已售罄'
+              : prod.stock === -1
+                ? '库存紧张'
+                : '库存充足' }}
+          </span>
+        </div>
+
+        <button
+          class="add-btn"
+          @click="addToCart(prod)"
+          :disabled="prod.stock === 0 || prod.isDiscontinued === 1"
+        >
+          <!-- 按钮文案 -->
+          {{ prod.isDiscontinued === 1
+            ? '已下架'
+            : prod.stock === 0
+              ? '已售罄'
+              : '加入购物车' }}
+        </button>
+      </div>
+    </div>
+  </div>
+    </div>
+
+    <!-- 分页 -->
+    <div class="pagination">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :current-page="page"
+        @current-change="handlePageChange"
+      />
     </div>
   </div>
 </template>
 
 <script>
 import { Search,Back,ShoppingCart as Cart} from '@element-plus/icons-vue'
-
+import axios from 'axios'
 export default {
   name: "SearchResults",
   components: {
@@ -129,9 +167,13 @@ export default {
   data() {
     return {
       searchQuery: this.$route.query.q || '',
-      categoryFilter: this.$route.query.category || null,
-      priceSort: null,
-      stockFilter: null,
+      categoryFilter: this.$route.query.category ? this.$route.query.category : null,
+      orderBy: null,
+      sort: null,
+      isDiscontinued: null,
+      page: 1,
+      pageSize: 7,
+      total: 0,
       categories: [
         { id: 1, name: "新鲜果蔬" },
         { id: 2, name: "肉禽蛋类" },
@@ -144,247 +186,103 @@ export default {
         { id: 9, name: "粮油调味" },
         { id: 10, name: "日化家居" }
       ],
-      products: [
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        {
-          product_id: 101,
-          name: "红富士苹果 5斤装",
-          category: 1,
-          price: 39.8,
-          stock: 15,
-          description: "新鲜红富士苹果，脆甜多汁，产地陕西",
-          image_url: require("@/assets/products/eggs.png"),
-          create_time: "2025-04-15 10:00:00"
-        },
-        // 其他19个商品数据...
-      ]
+      products: []
     }
   },
   computed: {
     searchParams() {
       return {
-        q: this.searchQuery.trim(),
-        category: this.categoryFilter,
-        sort: this.priceSort,
-        stock: this.stockFilter
+        page: this.page,
+        pageSize: this.pageSize,
+        name: this.searchQuery.trim(),
+        category: this.getCategoryId(this.categoryFilter),
+        orderBy: this.orderBy,
+        sort: this.sort,
+        isDiscontinued: this.isDiscontinued
       }
     }
+  },
+  async mounted() {
+    await this.handleSearch()
   },
   methods: {
     goToDetail(id) {
       this.$router.push({ name: 'ProductDetail', params: { id } })
     },
-    handleSearch() {
-      this.$router.push({
-        name: "SearchResults",
-        query: {
-          q: this.searchQuery.trim(),
-          category: this.categoryFilter,
-          sort: this.priceSort,
-          stock: this.stockFilter
-        }
-      })
+    handleSearch(resetPage = false) {
+    if (resetPage) this.page = 1;  // ← 每次新查询回到第一页
+    axios.get('/api/api/product/search', { params: this.searchParams,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'token': this.$store.state.UserModules.token
+    } }).then(res => {
+      // this.products = res.data.data.records
+      this.products = res.data.data.records.map(item => ({
+        product_id: item.productId,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        stock: item.stock,
+        description: item.description,
+        image_url: item.imageUrl,
+        create_time: item.createTime,
+        isDiscontinued: item.isDiscontinued
+      }))
+      this.total = res.data.data.total
+    })
+  }
+  ,
+    handlePageChange(page) {
+      this.page = page;
+      this.handleSearch();
     },
-    confirmAddToCart(prod) {
-    if (confirm(`确定将 "${prod.name}" 加入购物车吗？`)) {
-      this.addToCart(prod);
-    }
-  },
-    addToCart(prod) {
-      console.log("加入购物车：", prod)
+    async addToCart(prod) {
+      try {
+        const { value: quantity } = await this.$prompt('请输入购买数量', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          inputPattern: /^[1-9]\d*$/,
+          inputErrorMessage: '请输入有效的数量',
+          inputValue: 1,
+          inputValidator: () => {
+            // if (value > prod.stock) {
+            //   return '数量不能超过库存';
+            // }
+            return true;
+          }
+        });
+        
+        const response = await axios.post('/api/api/cart/add', {
+          user_id: this.$store.state.UserModules.userId,
+          productId: prod.product_id,
+          num: parseInt(quantity),
+          unitPrice:prod.price
+        },
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'token': this.$store.state.UserModules.token
+          }
+        });
+
+        if (response.data.code === 0) {
+          this.$message.success('加入购物车成功');
+        } else {
+          this.$message.error(response.data.message);
+        }
+      } catch (error) {
+        if (error !== 'cancel') {
+          this.$message.error('加入购物车失败');
+        }
+      }
     },
     getCategoryName(categoryId) {
       const category = this.categories.find(c => c.id === categoryId)
       return category ? category.name : '未知分类'
+    },
+    getCategoryId(categoryName) {
+      const category = this.categories.find(c => c.name === categoryName)
+      return category ? category.id : '未知分类'
     },
     formatTime(timeStr) {
       if (!timeStr) return ''
@@ -452,36 +350,22 @@ export default {
   margin: 0 auto;
 }
 
-.nav-buttons {
-  margin-bottom: 20px;
-}
-
-.search-bar {
+/* 分页样式 */
+.pagination {
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
-}
-
-.filter-section {
-  background: #f5f7fa;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  margin: 20px 0;
 }
 
 .product-card {
+  
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   transition: all 0.3s;
+  position: relative;
 }
 
 .product-card:hover {
@@ -521,16 +405,6 @@ export default {
   font-size: 18px;
   font-weight: 500;
   margin: 5px 0;
-}
-
-.product-desc {
-  font-size: 14px;
-  color: #666;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 4px 0;
 }
 
 .product-bottom {
@@ -594,6 +468,26 @@ export default {
     height: auto;
   }
 }
+.badge-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+}
+
+/* 禁用点击的商品图 */
+.disabled-click {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.badge-overlay {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+}
+.product-stock.out-of-stock { color: #f56c6c; }
+.product-stock.low-stock { color: #e6a23c; }
+.product-stock.in-stock { color: #67c23a; }
+
 </style>
-
-
