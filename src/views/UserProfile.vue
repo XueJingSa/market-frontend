@@ -74,8 +74,6 @@ export default {
     return {
       // 模拟用户信息和订单状态数据
       isLoggedIn: true,
-      nickname: 'tbNick_ci9aa',
-      userId: 'tb6292101164',
       address: '',
       avatarUrl: '',
       unpaidCount: 0,
