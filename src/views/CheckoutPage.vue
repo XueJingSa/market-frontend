@@ -28,17 +28,17 @@
           <tbody>
             <tr v-for="(product, index) in products" :key="index">
               <td class="product-td">
-                <img :src="product.image" alt="product" width="50">
-                <span class="product-name">{{ product.name }}</span>
+                <img :src="product.imageUrl" alt="product" width="50">
+                <span class="product-name">{{ product.productName }}</span>
               </td>
-              <td>{{ categoryList[product.attr] }}</td>
-              <td>¥{{ product.price }}</td>
+              <td>{{ categoryList[product.category] }}</td>
+              <td>¥{{ product.unitPrice }}</td>
               <td>
                 <el-button size="small" @click="decreaseQuantity(index)">-</el-button>
                 <span style="margin: 0 5px;">{{ product.quantity }}</span>
                 <el-button size="small" @click="increaseQuantity(index)">+</el-button>
               </td>
-              <td>¥{{ (product.price * product.quantity).toFixed(2) }}</td>
+              <td>¥{{ (product.unitPrice * product.quantity).toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
@@ -52,10 +52,6 @@
         <span>配送服务</span>
         <span class="service-name">{{ deliveryService.name }}</span>
         <span class="service-price">¥{{ deliveryService.price }}</span>
-      </div>
-      <div class="return-insurance">
-        <el-checkbox v-model="isReturnInsurance">退货宝</el-checkbox>
-        <span v-if="isReturnInsurance" class="insurance-desc">免费</span>
       </div>
     </div>
     <!-- 付款详情部分 -->
@@ -81,95 +77,104 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import 'element-plus/dist/index.css';
-const selectedAddress = ref(null)
-// 模拟收货地址列表
-const addressList = ref([
-  {
-    address: '北京 北京市 海淀区 花园路街道 海淀区花园路街道37号北京航空航天...',
-    contactName: '林艺涵',
-    contactPhone: '18518559617'
+<script>
+export default {
+  data() {
+    return {
+      selectedAddress: null,
+      addressList: [
+        {
+          address: '北京 北京市 海淀区 花园路街道 海淀区花园路街道37号北京航空航天...',
+          contactName: '林艺涵',
+          contactPhone: '18518559617'
+        },
+        {
+          address: '广东省 广州市 番禺区 小谷围街道 华南理工大学大学城校区',
+          contactName: '李思颖',
+          contactPhone: '18500638009'
+        },
+      ],
+      products: [
+        {
+          "detailId": 1,
+          "cartId": 1,
+          "productId": 1,
+          "productName": "商品2",
+          "imageUrl": '@/assets/images/bread.jpg',
+          "unitPrice": 10,
+          "quantity": 1,
+          "totalPrice": 10,
+          "stockStatus": "库存充足",
+          "available": true,
+          "createTime": null,
+          "updateTime": null
+        },
+      ],
+      categoryList: [
+        '新鲜果蔬',
+        '肉禽蛋类',
+        '海鲜水产',
+        '乳品烘焙',
+        '熟食即食',
+        '冷冻食品',
+        '酒水饮料',
+        '休闲零食',
+        '粮油调味',
+        '日化家居'
+      ],
+      orderNote: '',
+      deliveryService: {
+        name: '快递 包邮',
+        price: 0
+      },
+      isReturnInsurance: true
+    }
   },
-  {
-    address: '广东省 广州市 番禺区 小谷围街道 华南理工大学大学城校区',
-    contactName: '李思颖',
-    contactPhone: '18500638009'
+
+  computed: {
+    // 计算商品总价
+    totalProductPrice() {
+      return this.products.reduce((acc, product) => acc + (product.unitPrice * product.quantity), 0);
+    },
+
+    // 计算总费用
+    totalCost() {
+      return this.totalProductPrice + this.deliveryService.price;
+    }
   },
-  {
-    address: '北京 北京市 朝阳区 来广营镇 清苑路 华贸城8号院5号楼三单元3...',
-    contactName: '林艺涵',
-    contactPhone: '18518559617'
-  }
-])
 
-// 模拟商品列表
-const products = ref([
-  {
-    image: '@/assets/images/bread.jpg',
-    name: '马来西亚oldtown老街场旧街场白咖啡榛果味经典原味',
-    attr: 1,
-    price: 40.8,
-    quantity: 1,
+  methods: {
+    // 减少商品数量
+    decreaseQuantity(index) {
+      if (this.products[index].quantity > 1) {
+        this.products[index].quantity--;
+      }
+    },
+
+    // 增加商品数量
+    increaseQuantity(index) {
+      this.products[index].quantity++;
+    },
+
+    // 返回上一页
+    goBack() {
+      console.log('返回上一页');
+    },
+
+    // 提交订单
+    submitOrder() {
+      console.log('提交订单');
+    }
   },
-  {
-    image: '@/assets/images/bread.jpg',
-    name: '马来西亚oldtown老街场旧街场白咖啡榛果味经典原味',
-    attr: 2,
-    price: 40.8,
-    quantity: 3,
+
+  created() {
+    // cart参数
+    const paramArray = this.$route.query.cartDetailIds || [];
+    const cartDetailIds = Array.isArray(paramArray)
+      ? paramArray.map(Number)
+      : [Number(paramArray)];
+    console.log(cartDetailIds);
   }
-])
-
-const categoryList = [
-  '新鲜果蔬',
-  '肉禽蛋类',
-  '海鲜水产',
-  '乳品烘焙',
-  '熟食即食',
-  '冷冻食品',
-  '酒水饮料',
-  '休闲零食',
-  '粮油调味',
-  '日化家居']
-
-// 订单备注
-const orderNote = ref('')
-// 配送服务
-const deliveryService = ref({
-  name: '快递 包邮',
-  price: 0
-})
-// 是否购买退货宝
-const isReturnInsurance = ref(true)
-
-// 减少商品数量
-const decreaseQuantity = (index) => {
-  if (products.value[index].quantity > 1) {
-    products.value[index].quantity--
-  }
-}
-// 增加商品数量
-const increaseQuantity = (index) => {
-  products.value[index].quantity++
-}
-
-// 计算商品总价
-const totalProductPrice = computed(() => {
-  return products.value.reduce((acc, product) => acc + (product.price * product.quantity), 0)
-})
-// 计算总费用
-const totalCost = computed(() => {
-  return totalProductPrice.value + deliveryService.value.price
-})
-// 返回上一页
-const goBack = () => {
-  console.log('返回上一页')
-}
-// 提交订单
-const submitOrder = () => {
-  console.log('提交订单')
 }
 </script>
 

@@ -6,7 +6,7 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/NavHeader.vue'), // 父组件容器
-    redirect: '/orders',
+    redirect: '/checkout',
     children: [
       // 首页
       {
@@ -33,12 +33,6 @@ const routes = [
         path: '/checkout',
         name: 'CheckoutPage',
         component: () => import('@/views/CheckoutPage.vue'),
-        meta: { requiresAuth: true }
-      },
-      {
-        path: '/orders',
-        name: 'MyOrders',
-        component: () => import('@/views/MyOrders.vue'),
         meta: { requiresAuth: true }
       },
       {

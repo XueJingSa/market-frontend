@@ -87,7 +87,7 @@ export default {
           return;
         }
 
-        const response = await axios.post('/api/user/login', {
+        const response = await axios.post('/api/api/user/login', {
           userName: this.loginForm.userName,
           password: this.loginForm.userPassword
         });
@@ -130,7 +130,7 @@ export default {
           return;
         }
 
-        const response = await axios.post('/api/user/register', {
+        const response = await axios.post('/api/api/user/register', {
           userName: this.registerForm.userName,
           userPassword: this.registerForm.userPassword,
           checkPassword: this.registerForm.checkPassword
