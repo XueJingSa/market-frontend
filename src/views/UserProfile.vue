@@ -8,13 +8,13 @@
         <div v-if="isLoggedIn" class="nickname">{{ this.$store.state.UserModules.userName }}</div>
         <router-link v-else to="/login" class="login-text">登录</router-link>
         <div v-if="isLoggedIn" class="address-section">
-          <span @click="showAddressDialog = true">收货地址</span>
-          <el-dialog v-model="showAddressDialog" title="管理收货地址">
-            <div v-for="(addr, index) in addresses" :key="index" class="existing-address">
-              {{ addr }}
+          <span @click="openAddressDialog">收货地址</span>
+          <el-dialog v-model="showAddressDialog" title="修改收货地址">
+            <el-input v-model="tempAddress" placeholder="请输入新地址" type="textarea" :rows="3" />
+            <div class="dialog-actions" style="margin-top: 15px;">
+              <el-button @click="showAddressDialog = false">取消</el-button>
+              <el-button type="primary" @click="saveAddress">保存修改</el-button>
             </div>
-            <el-input v-model="newAddress" placeholder="请输入新地址" />
-            <el-button type="primary" @click="addAddress" style="margin-top: 15px;">添加新地址</el-button>
           </el-dialog>
         </div>
       </div>
@@ -77,12 +77,11 @@ export default {
       address: '',
       avatarUrl: '',
       unpaidCount: 0,
-      paidCount: 1,
-      completeCount: 1,
+      paidCount: 0,
+      completeCount: 0,
       refundCount: 0,
       showAddressDialog: false,
-      addresses: ['地址1'],
-      newAddress: '',
+      tempAddress: '',
       avatars: [
         require('@/assets/images/avatar1.png'),
         require('@/assets/images/avatar2.png'),
@@ -93,84 +92,40 @@ export default {
       categoryChart: null,
       orders: [
         {
-          date: '2025-05-04',
-          orderNumber: '4324793401278053717',
-          address: '北京市朝阳区 XX 路 XX 号',
-          products: [
+          "orderId": "251984203822",
+          "userId": 1,
+          "totalAmount": 20,
+          "status": "PAY_WAIT",
+          "createTime": 1747882707000,
+          "address": null,
+          "paymentStatus": false,
+          "payUrl": null,
+          "payTime": null,
+          "orderDetails": [
             {
-              image: require('@/assets/images/bread.jpg'),
-              name: '防染色吸色护色吸色片',
-              originalPrice: 54.00,
-              price: 24.90,
-              quantity: 1,
-              category: 1,
-            }
-          ],
-          totalPrice: 19.90,
-          shippingFee: 0.00,
-          status: '买家已付款',
-        },
-        {
-          date: '2025-04-04',
-          orderNumber: '4324793401278053717',
-          address: '北京市朝阳区 XX 路 XX 号',
-          products: [
-            {
-              image: require('@/assets/images/bread.jpg'),
-              name: '防染色吸色护色吸色片',
-              originalPrice: 54.00,
-              price: 24.90,
-              quantity: 1,
-              category: 1,
-            }
-          ],
-          totalPrice: 19.90,
-          shippingFee: 0.00,
-          status: '买家已付款',
-        },
-        {
-          date: '2025-03-04',
-          orderNumber: '4324793401278053717',
-          address: '北京市朝阳区 XX 路 XX 号',
-          products: [
-            {
-              image: require('@/assets/images/bread.jpg'),
-              name: '防染色吸色护色吸色片',
-              originalPrice: 54.00,
-              price: 24.90,
-              quantity: 1,
-              category: 1,
-            }
-          ],
-          totalPrice: 19.90,
-          shippingFee: 0.00,
-          status: '买家已付款',
-        },
-        {
-          date: '2025-05-04',
-          orderNumber: '4324721905719053717',
-          address: '上海市浦东新区 XX 街道 XX 小区',
-          products: [
-            {
-              image: require('@/assets/images/bread.jpg'),
-              name: 'Word 排版表格代做制作文档格式修改打字服务文字录入 PDF 转换编辑',
-              originalPrice: 10.00,
-              price: 5.00,
-              quantity: 6,
-              category: 2,
+              "detailId": 1,
+              "orderId": "251984203822",
+              "productId": 1,
+              "quantity": 1,
+              "unitPrice": 10,
+              "productName": "商品2",
+              "imageUrl": "",
+              "subTotal": 10,
+              "category": 2,
             },
             {
-              image: require('@/assets/images/bread.jpg'),
-              name: '【活动价】Word 排版格式修改生成目录页眉页脚页码整篇排版字体段落人工服务 [交易快照]',
-              originalPrice: 10.00,
-              price: 5.00,
-              quantity: 1,
-              category: 3,
+              "detailId": 2,
+              "orderId": "251984203822",
+              "productId": 1,
+              "quantity": 1,
+              "unitPrice": 10,
+              "productName": "商品2",
+              "imageUrl": "",
+              "subTotal": 10,
+              "category": 1,
             }
           ],
-          totalPrice: 28.00,
-          shippingFee: 0.00,
-          status: '买家已付款',
+          "statusDesc": "待付款"
         }
       ],
     };
@@ -179,19 +134,7 @@ export default {
     this.initCharts();
   },
   methods: {
-    async addAddress() {
-      if (this.newAddress.trim() !== '') {
-        this.addresses.push(this.newAddress);
-        const response = await axios.post('/api/user/update', {
-          address: this.newAddress,
-          userId: this.$store.state.UserModules.userId
-        });
-        if (response.data.code != 1) {
-          callError(response.data.message || '添加失败');
-        }
-        this.newAddress = '';
-      }
-    },
+
     // 触发文件选择
     triggerFileInput() {
       this.$refs.fileInput.click();
@@ -250,7 +193,7 @@ export default {
       const months = []; // 用于保存已排序的月份
 
       this.orders.forEach(order => {
-        const month = order.date.substring(0, 7); // 提取年月部分
+        const month = order.createTime.substring(0, 7); // 提取年月部分
         if (!monthCount[month]) {
           monthCount[month] = 0;
           months.push(month);
@@ -297,7 +240,7 @@ export default {
       // 统计各商品类别的数量
       const categoryCount = {};
       this.orders.forEach(order => {
-        order.products.forEach(product => {
+        order.orderDetails.forEach(product => {
           categoryCount[product.category] = (categoryCount[product.category] || 0) + product.quantity;
         });
       });
@@ -360,7 +303,91 @@ export default {
         ]
       };
       this.categoryChart.setOption(option);
-    }
+    },
+    formatTime(timestamp) {
+      const date = new Date(timestamp);
+      // 提取年、月、日
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // 月份从 0 开始，需 +1
+      const day = String(date.getDate()).padStart(2, '0');
+      // 组合成 YYYY-MM-DD 格式
+      const formattedDate = `${year}-${month}-${day}`;
+      return formattedDate
+    },
+    updateOrderStatusCounts() {
+      // 遍历订单数组统计状态
+      console.log(this.orders);
+      this.orders.forEach(order => {
+        switch (order.status) {
+          case 'PAY_WAIT':
+            this.unpaidCount++;
+            break;
+          case 'PAY_COMPLETE':
+            this.paidCount++;
+            break;
+          case 'PAY_CLOSE':
+            this.completeCount++;
+            break;
+          default:
+            console.warn('未知订单状态:', order.status);
+        }
+      });
+    },
+    async fetchOrders() {
+      try {
+        this.loading = true;
+        const userId = this.$store.state.UserModules.userId;
+        const response = await axios.get('/api/api/order/list', {
+          params: { userId },
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        });
+        this.orders = response.data.data || [];
+        console.log(this.orders)
+        callSuccess('获取订单成功')
+      } catch (error) {
+        callError('获取订单列表失败，请稍后重试');
+        console.error('获取订单列表失败:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    formatOrdersTime() {
+      this.orders = this.orders.map(order => ({
+        ...order,
+        createTime: this.formatTime(order.createTime) // 格式化时间戳
+      }));
+    },
+
+    openAddressDialog() { // 重命名方法，避免与 data 属性冲突
+      this.tempAddress = this.address || '';
+      this.showAddressDialog = true;
+    },
+
+    // 保存地址修改
+    saveAddress() {
+      if (!this.tempAddress.trim()) {
+        this.$message.warning('地址不能为空');
+        return;
+      }
+      this.address = this.tempAddress;
+      this.updateAddr();
+
+      this.showAddressDialog = false;
+    },
+    async updateAddr() {
+      try {
+        await axios.post('/api/api/user/update', {
+          address: this.address,
+          userId: this.$store.state.UserModules.userId
+        });
+        callSuccess('更新地址成功');
+      } catch (error) {
+        callError('更新地址失败，请稍后重试');
+        console.error('更新地址失败:', error);
+      }
+    },
   },
   watch: {
     orders: {
@@ -380,7 +407,15 @@ export default {
     if (this.categoryChart) {
       this.categoryChart.dispose();
     }
-  }
+  },
+  created() {
+    this.address = this.$store.state.UserModules.userAddr;
+    this.fetchOrders();
+    // 移进去
+    this.formatOrdersTime();
+    this.updateOrderStatusCounts();
+  },
+
 };
 </script>
 
