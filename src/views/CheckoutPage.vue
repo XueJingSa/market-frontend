@@ -102,7 +102,7 @@ export default {
           "cartId": 1,
           "productId": 1,
           "productName": "商品2",
-          "imageUrl": '@/assets/images/bread.jpg',
+          "imageUrl": '',
           "unitPrice": 10,
           "quantity": 1,
           "totalPrice": 10,
@@ -131,7 +131,7 @@ export default {
         price: 0
       },
       isReturnInsurance: true,
-      cart: [],
+      carts: [],
       cartDetailIds: [],
       loading: false,
       showAlipayPage: false,
@@ -186,9 +186,13 @@ export default {
         const response = await axios.post('/api/api/pay/create_pay_order', {
           cartDetailIds: this.cartDetailIds,
           userId: this.$store.state.UserModules.userId
+        }, {
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
         });
 
-        this.alipayHtml = response.data;
+        this.alipayHtml = response.data.data;
         this.showAlipayPage = true;
 
         // 延迟执行渲染，确保DOM已更新
@@ -221,14 +225,15 @@ export default {
     async fetchCart() {
       try {
         const userId = this.$store.state.UserModules.userId;
+        console.log(userId, this.$store.state.UserModules.token)
         const response = await axios.get('/api/api/cart/list', {
           params: { userId },
           headers: {
             'token': this.$store.state.UserModules.token
           }
         });
-        this.carts = response.data.records || [];
-
+        this.carts = response.data.data.records || [];
+        console.log(this.carts)
         // 筛选products
         const paramArray = this.$route.query.cartDetailIds || [];
         this.cartDetailIds = Array.isArray(paramArray)

@@ -36,7 +36,7 @@
           实付款: ¥{{ order.totalAmount }}
         </div>
         <div class="order-status">
-          <span>交易状态: {{ order.status }}</span>
+          <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
         </div>
         <div class="order-actions">
           <el-button size="mini">申请退款</el-button>
@@ -179,6 +179,15 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    getOrderStatusText(status) {
+      const statusMap = {
+        'PAY_WAIT': '待支付',
+        'PAY_SUCCESS': '已支付',
+        'DEAL_DONE': '已完成',
+        'CLOSE': '已取消',
+      };
+      return statusMap[status] || status; // 如果没有匹配，返回原状态
     }
   }
 };
