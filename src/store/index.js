@@ -6,9 +6,10 @@ export default createStore({
             namespaced: true,
             state: {
                 userId: 1, // 存储用户ID
-                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IlVzZXIiLCJleHAiOjE3NDgwNTg5NjIsInVzZXJJZCI6MX0.ExpBvdpyR34zTNFASxpIT6LZgoLUMfRugTve5qqJRJU',
+                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ4MTY5NzA2LCJ1c2VySWQiOjF9.aZL3H1CzHfDnEQ_8Jlbqos3yCySEksFcfanyr1rlm4A',
                 userName: '12345678',
                 userAddr:'北航',
+                avatar:'',
             },
             mutations: {
                 // 设置 userId
@@ -26,14 +27,19 @@ export default createStore({
                 // 设置 addr
                 setAddr(state, addr) {
                     state.userAddr = addr;
+                },
+                // 设置 avatar
+                setAvatar(state, avatar) {
+                    state.avatar = avatar;
                 }
             },
             actions: {
-                login({ commit }, { userId, token, name, addr }) {
+                login({ commit }, { userId, token, name, addr,avatar }) {
                     commit('setUserId', userId);
                     commit('setToken', token);
                     commit('setUserName', name);
                     commit('setAddr', addr);
+                    commit('setAvatar',avatar);
                 },
             },
             getters: {

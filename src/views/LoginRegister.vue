@@ -98,15 +98,17 @@ export default {
           const userId = response.data.data.userId;
           const userName = response.data.data.username;
           const userAddr = response.data.data.address;
+          const userAvatar = response.data.data.avatar;
 
           localStorage.setItem('token', token);
           localStorage.setItem('userId', userId);
           localStorage.setItem('userName', userName);
           localStorage.setItem('userAddr', userAddr);
+          localStorage.setItem('avatar', userAvatar);
 
-          this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr });
+          this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr, userAvatar });
 
-          console.log(this.$store.state.UserModules.userId, this.$store.state.UserModules.token)
+          console.log(this.$store.state.UserModules.token)
           this.$router.push('/home');
         } else {
           callError(response.data.message || '登录失败');

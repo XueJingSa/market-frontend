@@ -1,7 +1,8 @@
 <template>
   <div class="my-order-container">
     <div class="user-info">
-      <el-avatar :size="80" :src="avatars[0]" @click="triggerFileInput" style="cursor: pointer;" />
+      <el-avatar :size="80" :src="avatarUrl ? avatarUrl : avatars[0]" @click="triggerFileInput"
+        style="cursor: pointer;" />
       <!-- file input -->
       <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none;" accept="image/*" />
       <div class="user-details">
@@ -130,9 +131,9 @@ export default {
       ],
     };
   },
-  mounted() {
-    this.initCharts();
-  },
+  // mounted() {
+
+  // },
   methods: {
 
     // 触发文件选择
@@ -158,15 +159,15 @@ export default {
 
       try {
         // 调用上传接口
-        const response = await axios.post('/api/user/avatar/upload', formData, {
+        const response = await axios.post('/api/api/user/avatar/upload', formData, {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            'token': this.$store.state.UserModules.token
           },
         });
-
+        console.log(response.data)
         if (response.data.code === 1) {
           callSuccess('头像上传成功！');
-          this.avatarUrl = response.data.data.url;
+          this.avatarUrl = response.data.data;
         } else {
           callError(response.data.message || '上传失败');
         }
@@ -322,10 +323,10 @@ export default {
           case 'PAY_WAIT':
             this.unpaidCount++;
             break;
-          case 'PAY_COMPLETE':
+          case 'PAY_SUCCESS':
             this.paidCount++;
             break;
-          case 'PAY_CLOSE':
+          case 'DEAL_DONE':
             this.completeCount++;
             break;
           default:
@@ -335,6 +336,7 @@ export default {
     },
     async fetchOrders() {
       try {
+
         this.loading = true;
         const userId = this.$store.state.UserModules.userId;
         const response = await axios.get('/api/api/order/list', {
@@ -345,7 +347,13 @@ export default {
         });
         this.orders = response.data.data || [];
         console.log(this.orders)
+
         callSuccess('获取订单成功')
+        // 移进去
+        this.formatOrdersTime();
+        this.updateOrderStatusCounts();
+
+        this.initCharts();
       } catch (error) {
         callError('获取订单列表失败，请稍后重试');
         console.error('获取订单列表失败:', error);
@@ -411,9 +419,7 @@ export default {
   created() {
     this.address = this.$store.state.UserModules.userAddr;
     this.fetchOrders();
-    // 移进去
-    this.formatOrdersTime();
-    this.updateOrderStatusCounts();
+
   },
 
 };
