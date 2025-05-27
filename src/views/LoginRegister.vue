@@ -1,10 +1,15 @@
 <template>
   <div class="login-page">
     <div class="main-content">
+      <div style="display: flex;flex-direction: column;">
+        <div style="font-size: xx-large;font-weight: bold;margin-bottom: 20px;">Welcome to our</div>
+        <div style="font-size: xx-large;color: #fa8072;font-weight: bold;">Small Supermarket</div>
+      </div>
+      <div class="divider"></div>
       <div class="login-register-section">
-        <el-card style="width: 400px;height: 350px;margin-right: 20px;">
+        <el-card style="width: 400px;height: 350px;margin-right: 20px;border-color: white;" shadow="never">
           <el-tabs v-model="activeTab" class="custom-tabs">
-            <el-tab-pane label="登录" name="login" class="custom-tab-pane">
+            <el-tab-pane label="Login" name="login" class="custom-tab-pane">
               <el-form label-width="0px">
                 <el-form-item prop="userName">
                   <el-input v-model="loginForm.userName" placeholder="账号名" class="custom-input"></el-input>
@@ -16,9 +21,12 @@
                 <el-form-item style="margin-top: 10px;">
                   <el-button @click="handleLogin" type="primary" style="width: 100%;height: 40px;">登录</el-button>
                 </el-form-item>
+                <el-form-item>
+                  <el-checkbox v-model="isAdmin" style="font-size: 14px;">管理员登录管理端</el-checkbox>
+                </el-form-item>
               </el-form>
             </el-tab-pane>
-            <el-tab-pane label="注册" name="register" class="custom-tab-pane">
+            <el-tab-pane label="Regist" name="register" class="custom-tab-pane">
               <el-form label-width="0px">
                 <el-form-item prop="userName">
                   <el-input v-model="registerForm.userName" placeholder="账号名" class="custom-input"></el-input>
@@ -32,7 +40,8 @@
                     class="custom-input"></el-input>
                 </el-form-item>
                 <el-form-item style="margin-top: 10px;">
-                  <el-button type="primary" style="width: 100%;height: 40px;" @click="handleRegister">注册</el-button>
+                  <el-button type="primary" style="width: 100%;height: 40px;font-weight: 400;"
+                    @click="handleRegister">注册</el-button>
                 </el-form-item>
               </el-form>
             </el-tab-pane>
@@ -68,7 +77,8 @@ export default {
         userName: '',
         userPassword: '',
         checkPassword: ''
-      }
+      },
+      isAdmin: false,
     };
   },
   methods: {
@@ -99,6 +109,7 @@ export default {
           const userName = response.data.data.username;
           const userAddr = response.data.data.address;
           const userAvatar = response.data.data.avatar;
+          const userRole = response.data.data.role;
 
           localStorage.setItem('token', token);
           localStorage.setItem('userId', userId);
@@ -109,7 +120,10 @@ export default {
           this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr, userAvatar });
 
           console.log(this.$store.state.UserModules.token)
-          this.$router.push('/home');
+          if (this.isAdmin && userRole == 'Admin')
+            this.$router.push('/admin')
+          else
+            this.$router.push('/home');
         } else {
           callError(response.data.message || '登录失败');
         }
@@ -160,7 +174,8 @@ export default {
 
 <style scoped>
 .login-page {
-  background-color: #f4f4f4;
+  background-image: url('~@/assets/images/back.jpg');
+  background-size: cover;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -173,9 +188,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
   background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -190,11 +203,11 @@ export default {
 
 .main-content {
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
   gap: 20px;
-  width: 1000px;
-  height: 500px;
+  width: 800px;
+  height: 450px;
   margin: 20px auto;
   background-color: white;
   padding: 20px;
@@ -283,7 +296,7 @@ export default {
   padding: 0 10px;
   border: none;
   border-color: #e0e0e0;
-  border-radius: 4px;
+  border-radius: 15px;
   color: #333;
   font-size: 16px;
 }
@@ -291,5 +304,12 @@ export default {
 :deep(.custom-input .el-input__inner:focus) {
   border-color: #409eff;
   background-color: #fff;
+  border-radius: 15px;
+}
+
+.divider {
+  width: 2px;
+  height: 80%;
+  background-color: #e0e0e0;
 }
 </style>
