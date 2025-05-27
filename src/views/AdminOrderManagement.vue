@@ -38,7 +38,13 @@
           <span>{{ getOrderStatusText(row.status) }}</span>
         </template>
       </el-table-column>
-
+      <el-table-column label="操作" width="120">
+        <template #default="{ row }">
+          <el-button v-if="row.status != CLOSE" type="danger" size="small" @click="cancelOrder(row.orderId)">
+            取消订单
+          </el-button>
+        </template>
+      </el-table-column>
       <!-- 展开订单详情 -->
       <el-table-column type="expand">
         <template #default="{ row }">
@@ -50,13 +56,7 @@
           </el-table>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
-        <template #default="{ row }">
-          <el-button v-if="row.status != CLOSE" type="danger" size="small" @click="cancelOrder(row.orderId)">
-            取消订单
-          </el-button>
-        </template>
-      </el-table-column>
+
     </el-table>
 
     <!-- 分页 -->
@@ -96,10 +96,7 @@ export default {
     async fetchOrders() {
       try {
         this.loading = true
-        const response = await axios.get('/api/api/order/list', {
-          params: {
-            userId: this.searchForm.userId || this.$store.state.UserModules.userId
-          },
+        const response = await axios.get('/api/api/statistics/all', {
           headers: {
             token: this.$store.state.UserModules.token
           }
