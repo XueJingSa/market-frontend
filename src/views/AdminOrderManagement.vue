@@ -159,9 +159,10 @@ export default {
           type: 'warning'
         })
 
-        await axios.post('/api/order/cancel', { orderId }, {
+        await axios.post('/api/api/order/cancel', {
+          params: { orderId },
           headers: {
-            token: this.$store.state.UserModules.token
+            'token': this.$store.state.UserModules.token
           }
         })
 

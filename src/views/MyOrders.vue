@@ -1,54 +1,73 @@
 <template>
   <div class="order-list-container">
+    <el-breadcrumb separator="/" class="order-back">
+      <el-breadcrumb-item><a href="javascript:void(0)" @click="goBack">个人主页</a></el-breadcrumb-item>
+      <el-breadcrumb-item>我的订单</el-breadcrumb-item>
+    </el-breadcrumb>
     <!-- 搜索栏和筛选条件 -->
     <div class="search-filter-bar">
       <el-input v-model="searchKeyword" placeholder="输入商品标题或订单号进行搜索"></el-input>
       <el-button @click="searchOrder">订单搜索</el-button>
     </div>
+    <!-- 订单状态选项卡 -->
+    <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
+      <el-tab-pane label="全部订单" name="all"></el-tab-pane>
+      <el-tab-pane label="待支付" name="PAY_WAIT"></el-tab-pane>
+      <el-tab-pane label="已支付" name="PAY_SUCCESS"></el-tab-pane>
+      <el-tab-pane label="已完成" name="DEAL_DONE"></el-tab-pane>
+      <el-tab-pane label="已取消" name="CLOSE"></el-tab-pane>
+    </el-tabs>
 
     <!-- 订单列表 -->
-    <el-card v-for="(order, index) in filteredOrders" :key="index" class="order-item">
-      <!-- 订单头部信息 -->
-      <template #header>
-        <div class="order-header">
-          <span>{{ formatTime(order.createTime) }}</span>
-          <span>订单号: {{ order.orderId }}</span>
-          <span>收货地址: {{ order.address }}</span>
+    <div v-if="filteredOrders.length > 0" class="orders-list">
+      <el-card v-for="(order, index) in filteredOrders" :key="index" class="order-item">
+        <!-- 订单头部信息 -->
+        <template #header>
+          <div class="order-header">
+            <span>{{ formatTime(order.createTime) }}</span>
+            <span>订单号: {{ order.orderId }}</span>
+            <span>收货地址: {{ order.address }}</span>
+          </div>
+        </template>
+        <!-- 商品信息 -->
+        <div class="order-products">
+          <div v-for="(product, productIndex) in (isExpanded[index] ? order.orderDetails : [order.orderDetails[0]])"
+            :key="productIndex" class="product-item">
+            <img :src="product.imageUrl" alt="product" class="product-image" />
+            <el-table :data="[{ name: product.productName, price: product.unitPrice, quantity: product.quantity }]"
+              border style="width: 100%;">
+              <el-table-column label="商品名称" prop="name" align="left"></el-table-column>
+              <el-table-column label="单价" align="left">
+                <template #default="scope">
+                  <span>¥{{ scope.row.price }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" prop="quantity" align="left"></el-table-column>
+            </el-table>
+          </div>
+          <div class="order-total">
+            实付款: ¥ {{ order.totalAmount }}
+          </div>
+          <div class="order-status">
+            <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
+          </div>
+          <div class="order-actions">
+            <el-button size="mini" @click="cancelOrder(order.orderId)">申请退款</el-button>
+          </div>
         </div>
-      </template>
-      <!-- 商品信息 -->
-      <div class="order-products">
-        <div v-for="(product, productIndex) in (isExpanded[index] ? order.orderDetails : [order.orderDetails[0]])"
-          :key="productIndex" class="product-item">
-          <img :src="product.imageUrl" alt="product" class="product-image" />
-          <el-table :data="[{ name: product.productName, price: product.unitPrice, quantity: product.quantity }]" border
-            style="width: 100%;">
-            <el-table-column label="商品名称" prop="name" align="left"></el-table-column>
-            <el-table-column label="单价" align="left">
-              <template #default="scope">
-                <span>¥{{ scope.row.price }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="数量" prop="quantity" align="left"></el-table-column>
-          </el-table>
+        <!-- 展开/收起按钮 -->
+        <div v-if="order.orderDetails.length > 1" class="expand-collapse-btn">
+          <el-button @click="toggleExpand(index)">
+            {{ isExpanded[index] ? '收起' : '展开' }}
+          </el-button>
         </div>
-        <div class="order-total">
-          实付款: ¥{{ order.totalAmount }}
-        </div>
-        <div class="order-status">
-          <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
-        </div>
-        <div class="order-actions">
-          <el-button size="mini">申请退款</el-button>
-        </div>
-      </div>
-      <!-- 展开/收起按钮 -->
-      <div v-if="order.orderDetails.length > 1" class="expand-collapse-btn">
-        <el-button @click="toggleExpand(index)">
-          {{ isExpanded[index] ? '收起' : '展开' }}
-        </el-button>
-      </div>
-    </el-card>
+      </el-card>
+    </div>
+    <!-- 无订单提示 -->
+    <div v-else class="no-orders">
+      <p>暂无{{ getCurrentTabText() }}订单</p>
+      <el-button type="primary" @click="goShopping">去购物</el-button>
+    </div>
     <!-- 分页按钮 -->
     <div class="pagination">
       <el-button @click="prevPage">上一页</el-button>
@@ -62,6 +81,7 @@ import axios from 'axios';
 export default {
   data() {
     return {
+      activeTab: 'all',
       searchKeyword: '',
       orders: [
         {
@@ -106,10 +126,18 @@ export default {
   },
   computed: {
     filteredOrders() {
-      if (!this.searchKeyword) {
-        return this.orders;
+      // 首先根据状态过滤
+      let filteredByStatus = this.orders;
+      if (this.activeTab !== 'all') {
+        filteredByStatus = this.orders.filter(order => order.status == this.activeTab);
       }
-      return this.orders.filter((order) => {
+
+      // 然后根据关键词过滤
+      if (!this.searchKeyword) {
+        return filteredByStatus;
+      }
+
+      return filteredByStatus.filter((order) => {
         const searchFields = [
           order.orderId,
           ...order.orderDetails.map((product) => product.productName)
@@ -144,6 +172,21 @@ export default {
       if (this.page < totalPages) {
         this.page++;
       }
+    },
+    // 获取当前选项卡文本
+    getCurrentTabText() {
+      const statusMap = {
+        'PAY_WAIT': '待支付',
+        'PAY_SUCCESS': '已支付',
+        'DEAL_DONE': '已完成',
+        'CLOSE': '已取消',
+      };
+      if (this.activeTab === 'all') return '任何状态';
+      return statusMap[this.activeTab] || '该状态';
+    },
+    // 去购物
+    goShopping() {
+      this.$router.push('/home')
     },
     formatTime(timestamp) {
       const date = new Date(timestamp);
@@ -188,12 +231,41 @@ export default {
         'CLOSE': '已取消',
       };
       return statusMap[status] || status; // 如果没有匹配，返回原状态
-    }
+    },
+    async cancelOrder(orderId) {
+      try {
+        await this.$confirm('确定要取消该订单吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        console.log(orderId)
+        await axios.post('/api/api/order/refund', {
+          params: { orderId },
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        })
+
+        this.$message.success('订单已取消')
+        this.fetchOrders()
+      } catch (err) {
+        if (err !== 'cancel') {
+          this.$message.error('取消失败，请稍后再试')
+          console.error('取消订单失败:', err)
+        }
+      }
+    },
   }
 };
 </script>
 
 <style scoped>
+.order-back {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
 .order-list-container {
   font-family: Arial, sans-serif;
   width: 1000px;
@@ -227,6 +299,12 @@ export default {
   margin-bottom: 10px;
   padding: 10px;
   background-color: #fff;
+}
+
+.order-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #fa8072;
 }
 
 .order-header {
@@ -310,5 +388,41 @@ export default {
 .pagination button {
   margin: 0 5px;
   padding: 5px 10px;
+}
+
+.custom-tabs .el-tabs__header {
+  margin-bottom: 20px;
+}
+
+.custom-tabs .el-tabs__nav {
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.custom-tabs .el-tabs__item {
+  padding: 0 40px;
+  height: 50px;
+  line-height: 40px;
+  font-size: 14px;
+}
+
+.no-orders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+  text-align: center;
+}
+
+.empty-image {
+  width: 200px;
+  height: 150px;
+  object-fit: contain;
+  margin-bottom: 20px;
+  opacity: 0.5;
 }
 </style>
