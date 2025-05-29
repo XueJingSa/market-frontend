@@ -6,7 +6,8 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/NavHeader.vue'), // 父组件容器
-    redirect: '/login',
+    // redirect: '/login', //调试时我注释掉一下
+    redirect: '/home',
     children: [
       // 首页
       {

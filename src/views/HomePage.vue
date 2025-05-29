@@ -443,6 +443,7 @@ export default {
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
+  
 }
 
 /* —— 推荐商品区 —— */
@@ -508,6 +509,7 @@ export default {
   font-size: 14px;
   color: #333;
   font-weight: 500;
+  font-weight: bold;
 }
 
 .product-desc {

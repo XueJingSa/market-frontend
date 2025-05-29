@@ -46,10 +46,24 @@
         <el-table-column prop="stock" label="库存" width="80"/>
         <el-table-column prop="isDiscontinued" label="状态" width="100" :formatter="formatStatus"/>
         <el-table-column prop="createTime" label="上架时间" width="180"/>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="280">
           <template #default="{ row }">
-            <el-button size="small" @click="openDialog(row)">编辑</el-button>
-            <el-button size="small" type="warn" @click="toggleStatus(row)">{{ row.isDiscontinued===0 ? '下架' : '上架' }}</el-button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <el-button size="small" @click="openDialog(row)">编辑</el-button>
+              <el-button size="small" type="warn" @click="toggleStatus(row)">
+                {{ row.isDiscontinued===0 ? '下架' : '上架' }}
+              </el-button>
+              <el-upload
+                class="upload-btn"
+                action="/api/api/product/picture"
+                :show-file-list="false"
+                :data="{ productId: row.product_id }"
+                :headers="{ 'token': $store.state.UserModules.token }"
+                :on-success="handleUploadSuccess"
+                :before-upload="beforeUpload">
+                <el-button size="small" type="primary">上传图片</el-button>
+              </el-upload>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -299,6 +313,21 @@
         } catch (error) {
           this.$message.error(this.isEdit ? '修改失败' : '添加失败')
           console.error('操作失败:', error)
+        }
+      },
+      beforeUpload(file) {
+        const isImage = file.type.includes('image/');
+        if (!isImage) {
+          this.$message.error('只能上传图片文件');
+        }
+        return isImage;
+      },
+      handleUploadSuccess(res) {
+        if (res.code === 1) {
+          this.$message.success('图片上传成功');
+          this.fetchList();
+        } else {
+          this.$message.error(res.msg || '图片上传失败');
         }
       },
       async toggleStatus(row) {

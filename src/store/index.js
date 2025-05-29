@@ -6,7 +6,7 @@ export default createStore({
             namespaced: true,
             state: {
                 userId: 1, // 存储用户ID
-                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ3NTc2NTQ5LCJ1c2VySWQiOjF9.7kvbD7z3zrRdJb_30gSaWi7_ewoQkBOTNey8HkrTuwM'
+                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ4MzU5MTE4LCJ1c2VySWQiOjF9.G8A8bHIb6-OjuzAfRUrR9liY9icptJDe-qpmj5SxCPA'
             },
             mutations: {
                 
