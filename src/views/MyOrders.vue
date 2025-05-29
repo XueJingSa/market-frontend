@@ -1,57 +1,73 @@
 <template>
   <div class="order-list-container">
+    <el-breadcrumb separator="/" class="order-back">
+      <el-breadcrumb-item><a href="javascript:void(0)" @click="goBack">个人主页</a></el-breadcrumb-item>
+      <el-breadcrumb-item>我的订单</el-breadcrumb-item>
+    </el-breadcrumb>
     <!-- 搜索栏和筛选条件 -->
     <div class="search-filter-bar">
       <el-input v-model="searchKeyword" placeholder="输入商品标题或订单号进行搜索"></el-input>
       <el-button @click="searchOrder">订单搜索</el-button>
     </div>
+    <!-- 订单状态选项卡 -->
+    <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
+      <el-tab-pane label="全部订单" name="all"></el-tab-pane>
+      <el-tab-pane label="待支付" name="PAY_WAIT"></el-tab-pane>
+      <el-tab-pane label="已支付" name="PAY_SUCCESS"></el-tab-pane>
+      <el-tab-pane label="已完成" name="DEAL_DONE"></el-tab-pane>
+      <el-tab-pane label="已取消" name="CLOSE"></el-tab-pane>
+    </el-tabs>
 
     <!-- 订单列表 -->
-    <el-card v-for="(order, index) in filteredOrders" :key="index" class="order-item">
-      <!-- 订单头部信息 -->
-      <template #header>
-        <div class="order-header">
-          <span>{{ order.date }}</span>
-          <span>订单号: {{ order.orderNumber }}</span>
-          <span>收货地址: {{ order.address }}</span>
+    <div v-if="filteredOrders.length > 0" class="orders-list">
+      <el-card v-for="(order, index) in filteredOrders" :key="index" class="order-item">
+        <!-- 订单头部信息 -->
+        <template #header>
+          <div class="order-header">
+            <span>{{ formatTime(order.createTime) }}</span>
+            <span>订单号: {{ order.orderId }}</span>
+            <span>收货地址: {{ order.address }}</span>
+          </div>
+        </template>
+        <!-- 商品信息 -->
+        <div class="order-products">
+          <div v-for="(product, productIndex) in (isExpanded[index] ? order.orderDetails : [order.orderDetails[0]])"
+            :key="productIndex" class="product-item">
+            <img :src="product.imageUrl" alt="product" class="product-image" />
+            <el-table :data="[{ name: product.productName, price: product.unitPrice, quantity: product.quantity }]"
+              border style="width: 100%;">
+              <el-table-column label="商品名称" prop="name" align="left"></el-table-column>
+              <el-table-column label="单价" align="left">
+                <template #default="scope">
+                  <span>¥{{ scope.row.price }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" prop="quantity" align="left"></el-table-column>
+            </el-table>
+          </div>
+          <div class="order-total">
+            实付款: ¥ {{ order.totalAmount }}
+          </div>
+          <div class="order-status">
+            <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
+          </div>
+          <div class="order-actions">
+            <el-button size="mini" @click="cancelOrder(order.orderId)">申请退款</el-button>
+          </div>
         </div>
-      </template>
-      <!-- 商品信息 -->
-      <div class="order-products">
-        <div v-for="(product, productIndex) in (isExpanded[index] ? order.products : [order.products[0]])"
-          :key="productIndex" class="product-item">
-          <img :src="product.image" alt="product" class="product-image" />
-          <el-table
-            :data="[{ name: product.name, price: product.price, originalPrice: product.originalPrice, quantity: product.quantity }]"
-            border style="width: 100%;">
-            <el-table-column label="商品名称" prop="name" align="left"></el-table-column>
-            <el-table-column label="单价" align="left">
-              <template #default="scope">
-                <span>¥{{ scope.row.price }}</span>
-                <span style="color: #999; text-decoration: line-through; margin-left: 4px;">¥{{ scope.row.originalPrice
-                }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="数量" prop="quantity" align="left"></el-table-column>
-          </el-table>
+        <!-- 展开/收起按钮 -->
+        <div v-if="order.orderDetails.length > 1" class="expand-collapse-btn">
+          <el-button @click="toggleExpand(index)">
+            {{ isExpanded[index] ? '收起' : '展开' }}
+          </el-button>
         </div>
-        <div class="order-total">
-          实付款: ¥{{ order.totalPrice }} (含运费: ¥{{ order.shippingFee }})
-        </div>
-        <div class="order-status">
-          <span>交易状态: {{ order.status }}</span>
-        </div>
-        <div class="order-actions">
-          <el-button size="mini">申请退款</el-button>
-        </div>
-      </div>
-      <!-- 展开/收起按钮 -->
-      <div v-if="order.products.length > 1" class="expand-collapse-btn">
-        <el-button @click="toggleExpand(index)">
-          {{ isExpanded[index] ? '收起' : '展开' }}
-        </el-button>
-      </div>
-    </el-card>
+      </el-card>
+    </div>
+    <!-- 无订单提示 -->
+    <div v-else class="no-orders">
+      <p>暂无{{ getCurrentTabText() }}订单</p>
+      <el-button type="primary" @click="goShopping">去购物</el-button>
+    </div>
     <!-- 分页按钮 -->
     <div class="pagination">
       <el-button @click="prevPage">上一页</el-button>
@@ -61,54 +77,46 @@
 </template>
 
 <script>
+import axios from 'axios';
 export default {
   data() {
     return {
+      activeTab: 'all',
       searchKeyword: '',
       orders: [
         {
-          date: '2025-05-04',
-          orderNumber: '4324793401278053717',
-          address: '北京市朝阳区 XX 路 XX 号',
-          products: [
+          "orderId": "251984203822",
+          "userId": 1,
+          "totalAmount": 20,
+          "status": "PAY_WAIT",
+          "createTime": 1747882707000,
+          "address": null,
+          "paymentStatus": false,
+          "payUrl": null,
+          "payTime": null,
+          "orderDetails": [
             {
-              image: require('@/assets/images/bread.jpg'),
-              name: '防染色吸色护色吸色片',
-              originalPrice: 54.00,
-              price: 24.90,
-              quantity: 1,
-              category: 1,
-            }
-          ],
-          totalPrice: 19.90,
-          shippingFee: 0.00,
-          status: '买家已付款',
-        },
-        {
-          date: '2025-05-04',
-          orderNumber: '4324721905719053717',
-          address: '上海市浦东新区 XX 街道 XX 小区',
-          products: [
-            {
-              image: require('@/assets/images/bread.jpg'),
-              name: 'Word 排版表格代做制作文档格式修改打字服务文字录入 PDF 转换编辑',
-              originalPrice: 10.00,
-              price: 5.00,
-              quantity: 6,
-              category: 2,
+              "detailId": 1,
+              "orderId": "251984203822",
+              "productId": 1,
+              "quantity": 1,
+              "unitPrice": 10,
+              "productName": "商品2",
+              "imageUrl": "",
+              "subTotal": 10
             },
             {
-              image: require('@/assets/images/bread.jpg'),
-              name: '【活动价】Word 排版格式修改生成目录页眉页脚页码整篇排版字体段落人工服务 [交易快照]',
-              originalPrice: 10.00,
-              price: 5.00,
-              quantity: 1,
-              category: 3,
+              "detailId": 2,
+              "orderId": "251984203822",
+              "productId": 1,
+              "quantity": 1,
+              "unitPrice": 10,
+              "productName": "商品2",
+              "imageUrl": "",
+              "subTotal": 10
             }
           ],
-          totalPrice: 28.00,
-          shippingFee: 0.00,
-          status: '买家已付款',
+          "statusDesc": "待付款"
         }
       ],
       page: 1,
@@ -118,13 +126,21 @@ export default {
   },
   computed: {
     filteredOrders() {
-      if (!this.searchKeyword) {
-        return this.orders;
+      // 首先根据状态过滤
+      let filteredByStatus = this.orders;
+      if (this.activeTab !== 'all') {
+        filteredByStatus = this.orders.filter(order => order.status == this.activeTab);
       }
-      return this.orders.filter((order) => {
+
+      // 然后根据关键词过滤
+      if (!this.searchKeyword) {
+        return filteredByStatus;
+      }
+
+      return filteredByStatus.filter((order) => {
         const searchFields = [
-          order.orderNumber,
-          ...order.products.map((product) => product.name)
+          order.orderId,
+          ...order.orderDetails.map((product) => product.productName)
         ];
         return searchFields.some((field) =>
           field.toLowerCase().includes(this.searchKeyword.toLowerCase())
@@ -133,9 +149,10 @@ export default {
     }
   },
   created() {
-    this.orders.forEach(() => {
-      this.isExpanded.push(false);
-    });
+    this.fetchOrders();
+    // this.orders.forEach(() => {
+    //   this.isExpanded.push(false);
+    // });
   },
   methods: {
     searchOrder() {
@@ -155,12 +172,100 @@ export default {
       if (this.page < totalPages) {
         this.page++;
       }
-    }
+    },
+    // 获取当前选项卡文本
+    getCurrentTabText() {
+      const statusMap = {
+        'PAY_WAIT': '待支付',
+        'PAY_SUCCESS': '已支付',
+        'DEAL_DONE': '已完成',
+        'CLOSE': '已取消',
+      };
+      if (this.activeTab === 'all') return '任何状态';
+      return statusMap[this.activeTab] || '该状态';
+    },
+    // 去购物
+    goShopping() {
+      this.$router.push('/home')
+    },
+    formatTime(timestamp) {
+      const date = new Date(timestamp);
+
+      // 提取年、月、日
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // 月份从 0 开始，需 +1
+      const day = String(date.getDate()).padStart(2, '0');
+
+      // 组合成 YYYY-MM-DD 格式
+      const formattedDate = `${year}-${month}-${day}`;
+      return formattedDate
+    },
+    async fetchOrders() {
+      try {
+        this.loading = true;
+        const userId = this.$store.state.UserModules.userId;
+        const response = await axios.get('/api/api/order/list', {
+          params: { userId },
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        });
+        this.orders = response.data.data || [];
+
+        // 初始化展开状态数组
+        this.orders.forEach(() => {
+          this.isExpanded.push(false);
+        });
+      } catch (error) {
+        this.$message.error('获取订单列表失败，请稍后重试');
+        console.error('获取订单列表失败:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    getOrderStatusText(status) {
+      const statusMap = {
+        'PAY_WAIT': '待支付',
+        'PAY_SUCCESS': '已支付',
+        'DEAL_DONE': '已完成',
+        'CLOSE': '已取消',
+      };
+      return statusMap[status] || status; // 如果没有匹配，返回原状态
+    },
+    async cancelOrder(orderId) {
+      try {
+        await this.$confirm('确定要取消该订单吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        console.log(orderId)
+        await axios.post('/api/api/order/refund', {
+          params: { orderId },
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        })
+
+        this.$message.success('订单已取消')
+        this.fetchOrders()
+      } catch (err) {
+        if (err !== 'cancel') {
+          this.$message.error('取消失败，请稍后再试')
+          console.error('取消订单失败:', err)
+        }
+      }
+    },
   }
 };
 </script>
 
 <style scoped>
+.order-back {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
 .order-list-container {
   font-family: Arial, sans-serif;
   width: 1000px;
@@ -194,6 +299,12 @@ export default {
   margin-bottom: 10px;
   padding: 10px;
   background-color: #fff;
+}
+
+.order-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #fa8072;
 }
 
 .order-header {
@@ -277,5 +388,41 @@ export default {
 .pagination button {
   margin: 0 5px;
   padding: 5px 10px;
+}
+
+.custom-tabs .el-tabs__header {
+  margin-bottom: 20px;
+}
+
+.custom-tabs .el-tabs__nav {
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.custom-tabs .el-tabs__item {
+  padding: 0 40px;
+  height: 50px;
+  line-height: 40px;
+  font-size: 14px;
+}
+
+.no-orders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+  text-align: center;
+}
+
+.empty-image {
+  width: 200px;
+  height: 150px;
+  object-fit: contain;
+  margin-bottom: 20px;
+  opacity: 0.5;
 }
 </style>

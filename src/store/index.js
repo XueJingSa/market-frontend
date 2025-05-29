@@ -6,14 +6,40 @@ export default createStore({
             namespaced: true,
             state: {
                 userId: 1, // 存储用户ID
-                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ4MzU5MTE4LCJ1c2VySWQiOjF9.G8A8bHIb6-OjuzAfRUrR9liY9icptJDe-qpmj5SxCPA'
+                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ4MzM3NTkwLCJ1c2VySWQiOjF9.GdezTdY8LNTHq2YJDnTJ9B-n2-AcdwApwSI2FADBdRU',
+                userName: '12345678',
+                userAddr:'北航',
+                avatar:'',
             },
             mutations: {
-                
+                // 设置 userId
+                setUserId(state, userId) {
+                    state.userId = userId;
+                },
+                // 设置 token
+                setToken(state, token) {
+                    state.token = token;
+                },
+                // 设置 name
+                setUserName(state, name) {
+                    state.userName = name;
+                },
+                // 设置 addr
+                setAddr(state, addr) {
+                    state.userAddr = addr;
+                },
+                // 设置 avatar
+                setAvatar(state, avatar) {
+                    state.avatar = avatar;
+                }
             },
             actions: {
-                login({ commit }, userId) {
+                login({ commit }, { userId, token, name, addr,avatar }) {
                     commit('setUserId', userId);
+                    commit('setToken', token);
+                    commit('setUserName', name);
+                    commit('setAddr', addr);
+                    commit('setAvatar',avatar);
                 },
             },
             getters: {

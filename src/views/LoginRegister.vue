@@ -1,35 +1,15 @@
 <template>
   <div class="login-page">
     <div class="main-content">
-      <div class="avatar-section">
-        <el-card style="width: 400px;height: 350px;margin-left: 30px;">
-          <template #header>
-            <div style="font-size: 22px; text-align: center;">选择头像</div>
-          </template>
-          <!-- 默认显示的大头像 -->
-          <div style="text-align: center; margin-bottom: 20px;margin-top: 30px;">
-            <el-avatar :src="selectedAvatar || avatars[0]" :size="100" @click="dialogVisible = true"
-              style="cursor: pointer;" />
-          </div>
-
-          <!-- 头像选择对话框 -->
-          <el-dialog v-model="dialogVisible" title="选择头像" width="30%" :before-close="handleClose">
-            <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
-              <el-avatar v-for="(avatar, index) in avatars" :key="index" :src="avatar" :size="60"
-                @click="handleAvatarSelect(avatar)" style="cursor: pointer; margin: 10px;" />
-            </div>
-            <template #footer>
-              <el-button @click="dialogVisible = false">取消</el-button>
-            </template>
-          </el-dialog>
-
-          <div style="text-align: center;">注册可选头像</div>
-        </el-card>
+      <div style="display: flex;flex-direction: column;">
+        <div style="font-size: xx-large;font-weight: bold;margin-bottom: 20px;">Welcome to our</div>
+        <div style="font-size: xx-large;color: #fa8072;font-weight: bold;">Small Supermarket</div>
       </div>
+      <div class="divider"></div>
       <div class="login-register-section">
-        <el-card style="width: 400px;height: 350px;margin-right: 20px;">
+        <el-card style="width: 400px;height: 350px;margin-right: 20px;border-color: white;" shadow="never">
           <el-tabs v-model="activeTab" class="custom-tabs">
-            <el-tab-pane label="登录" name="login" class="custom-tab-pane">
+            <el-tab-pane label="Login" name="login" class="custom-tab-pane">
               <el-form label-width="0px">
                 <el-form-item prop="userName">
                   <el-input v-model="loginForm.userName" placeholder="账号名" class="custom-input"></el-input>
@@ -41,9 +21,12 @@
                 <el-form-item style="margin-top: 10px;">
                   <el-button @click="handleLogin" type="primary" style="width: 100%;height: 40px;">登录</el-button>
                 </el-form-item>
+                <el-form-item>
+                  <el-checkbox v-model="isAdmin" style="font-size: 14px;">管理员登录管理端</el-checkbox>
+                </el-form-item>
               </el-form>
             </el-tab-pane>
-            <el-tab-pane label="注册" name="register" class="custom-tab-pane">
+            <el-tab-pane label="Regist" name="register" class="custom-tab-pane">
               <el-form label-width="0px">
                 <el-form-item prop="userName">
                   <el-input v-model="registerForm.userName" placeholder="账号名" class="custom-input"></el-input>
@@ -57,7 +40,8 @@
                     class="custom-input"></el-input>
                 </el-form-item>
                 <el-form-item style="margin-top: 10px;">
-                  <el-button type="primary" style="width: 100%;height: 40px;" @click="handleRegister">注册</el-button>
+                  <el-button type="primary" style="width: 100%;height: 40px;font-weight: 400;"
+                    @click="handleRegister">注册</el-button>
                 </el-form-item>
               </el-form>
             </el-tab-pane>
@@ -93,7 +77,8 @@ export default {
         userName: '',
         userPassword: '',
         checkPassword: ''
-      }
+      },
+      isAdmin: false,
     };
   },
   methods: {
@@ -112,15 +97,33 @@ export default {
           return;
         }
 
-        const response = await axios.post('/api/user/login', {
+        const response = await axios.post('/api/api/user/login', {
           userName: this.loginForm.userName,
           password: this.loginForm.userPassword
         });
         console.log(response.data)
         if (response.data.code === 1) {
           callSuccess('登录成功');
-          localStorage.setItem('token', response.data.data.token);
-          this.$router.push('/home');
+          const token = response.data.data.token;
+          const userId = response.data.data.userId;
+          const userName = response.data.data.username;
+          const userAddr = response.data.data.address;
+          const userAvatar = response.data.data.avatar;
+          const userRole = response.data.data.role;
+
+          localStorage.setItem('token', token);
+          localStorage.setItem('userId', userId);
+          localStorage.setItem('userName', userName);
+          localStorage.setItem('userAddr', userAddr);
+          localStorage.setItem('avatar', userAvatar);
+
+          this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr, userAvatar });
+
+          console.log(this.$store.state.UserModules.token)
+          if (this.isAdmin && userRole == 'Admin')
+            this.$router.push('/admin')
+          else
+            this.$router.push('/home');
         } else {
           callError(response.data.message || '登录失败');
         }
@@ -143,7 +146,7 @@ export default {
           return;
         }
 
-        const response = await axios.post('/api/user/register', {
+        const response = await axios.post('/api/api/user/register', {
           userName: this.registerForm.userName,
           userPassword: this.registerForm.userPassword,
           checkPassword: this.registerForm.checkPassword
@@ -158,7 +161,7 @@ export default {
             checkPassword: ''
           };
         } else {
-          callError(response.data.message || '注册失败');
+          callError(response.data.msg || '注册失败');
         }
       } catch (error) {
         callError('网络错误，请稍后重试');
@@ -171,7 +174,8 @@ export default {
 
 <style scoped>
 .login-page {
-  background-color: #f4f4f4;
+  background-image: url('~@/assets/images/back.jpg');
+  background-size: cover;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -184,9 +188,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
   background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -201,11 +203,12 @@ export default {
 
 .main-content {
   display: flex;
+  justify-content: space-around;
   align-items: center;
   gap: 20px;
-  width: 1000px;
-  height: 500px;
-  margin-top: 20px;
+  width: 800px;
+  height: 450px;
+  margin: 20px auto;
   background-color: white;
   padding: 20px;
   border-radius: 8px;
@@ -246,7 +249,7 @@ export default {
 }
 
 .login-register-section {
-  flex: 1;
+  justify-content: center;
 }
 
 .password-container {
@@ -293,7 +296,7 @@ export default {
   padding: 0 10px;
   border: none;
   border-color: #e0e0e0;
-  border-radius: 4px;
+  border-radius: 15px;
   color: #333;
   font-size: 16px;
 }
@@ -301,5 +304,12 @@ export default {
 :deep(.custom-input .el-input__inner:focus) {
   border-color: #409eff;
   background-color: #fff;
+  border-radius: 15px;
+}
+
+.divider {
+  width: 2px;
+  height: 80%;
+  background-color: #e0e0e0;
 }
 </style>

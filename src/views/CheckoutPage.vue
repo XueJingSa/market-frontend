@@ -1,17 +1,22 @@
 <template>
   <div class="container">
     <h1 class="order-title">提交订单</h1>
-    <!-- 确认收货地址部分 -->
-    <div class="address-section">
-      <h3 class="section-title">确认收货地址</h3>
-      <div class="address-list">
-        <el-select v-model="selectedAddress" placeholder="请选择收货地址">
-          <el-option v-for="(address, index) in addressList" :key="index"
-            :label="`${address.address} - ${address.contactName} ${address.contactPhone}`" :value="address" />
-        </el-select>
+    <!-- 收货地址 -->
+    <div class="address-list">
+      <div class="address-card" v-if="!isEditing">
+        <div class="address-content">{{ address || '未设置地址' }}</div>
+        <el-button type="primary" class="edit-btn" @click="startEditing">修改</el-button>
+      </div>
+
+      <div class="address-form" v-else>
+        <input v-model="editedAddress" type="text" class="address-input" placeholder="请输入地址">
+        <div class="form-actions">
+          <el-button type="primary" @click="saveAddress">保存</el-button>
+          <el-button type="default" @click="cancelEditing">取消</el-button>
+        </div>
       </div>
     </div>
-    <!-- 确认订单信息部分 -->
+    <!-- 订单信息 -->
     <div class="order-info-section">
       <h3 class="section-title">确认订单信息</h3>
       <div class="order-table">
@@ -28,17 +33,17 @@
           <tbody>
             <tr v-for="(product, index) in products" :key="index">
               <td class="product-td">
-                <img :src="product.image" alt="product" width="50">
-                <span class="product-name">{{ product.name }}</span>
+                <img :src="product.imageUrl" alt="product" width="50">
+                <span class="product-name">{{ product.productName }}</span>
               </td>
-              <td>{{ categoryList[product.attr] }}</td>
-              <td>¥{{ product.price }}</td>
+              <td>{{ categoryList[product.category] }}</td>
+              <td>¥{{ product.unitPrice }}</td>
               <td>
                 <el-button size="small" @click="decreaseQuantity(index)">-</el-button>
                 <span style="margin: 0 5px;">{{ product.quantity }}</span>
                 <el-button size="small" @click="increaseQuantity(index)">+</el-button>
               </td>
-              <td>¥{{ (product.price * product.quantity).toFixed(2) }}</td>
+              <td>¥{{ (product.unitPrice * product.quantity).toFixed(2) }}</td>
             </tr>
           </tbody>
         </table>
@@ -52,10 +57,6 @@
         <span>配送服务</span>
         <span class="service-name">{{ deliveryService.name }}</span>
         <span class="service-price">¥{{ deliveryService.price }}</span>
-      </div>
-      <div class="return-insurance">
-        <el-checkbox v-model="isReturnInsurance">退货宝</el-checkbox>
-        <span v-if="isReturnInsurance" class="insurance-desc">免费</span>
       </div>
     </div>
     <!-- 付款详情部分 -->
@@ -79,97 +80,213 @@
       </div>
     </div>
   </div>
+  <div v-if="showAlipayPage" class="alipay-container">
+    <div v-if="loading" class="loading-mask">
+      <el-loading-spinner size="large"></el-loading-spinner>
+    </div>
+    <div v-else ref="alipayContainer"></div>
+  </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import 'element-plus/dist/index.css';
-const selectedAddress = ref(null)
-// 模拟收货地址列表
-const addressList = ref([
-  {
-    address: '北京 北京市 海淀区 花园路街道 海淀区花园路街道37号北京航空航天...',
-    contactName: '林艺涵',
-    contactPhone: '18518559617'
+<script>
+import axios from 'axios';
+import { callError, callSuccess } from '@/api/index';
+export default {
+  data() {
+    return {
+      selectedAddress: null,
+      address: "",
+      products: [
+        {
+          "detailId": 1,
+          "cartId": 1,
+          "productId": 1,
+          "productName": "商品2",
+          "imageUrl": '',
+          "unitPrice": 10,
+          "quantity": 1,
+          "totalPrice": 10,
+          "category": 0,
+          "stockStatus": "库存充足",
+          "available": true,
+          "createTime": null,
+          "updateTime": null
+        },
+      ],
+      categoryList: [
+        '新鲜果蔬',
+        '肉禽蛋类',
+        '海鲜水产',
+        '乳品烘焙',
+        '熟食即食',
+        '冷冻食品',
+        '酒水饮料',
+        '休闲零食',
+        '粮油调味',
+        '日化家居'
+      ],
+      orderNote: '',
+      deliveryService: {
+        name: '快递 包邮',
+        price: 0
+      },
+      isReturnInsurance: true,
+      carts: [],
+      cartDetailIds: [],
+      loading: false,
+      showAlipayPage: false,
+      alipayHtml: '',
+      isEditing: false,
+      editedAddress: ''
+    }
   },
-  {
-    address: '广东省 广州市 番禺区 小谷围街道 华南理工大学大学城校区',
-    contactName: '李思颖',
-    contactPhone: '18500638009'
+
+  watch: {
+    address(newVal) {
+      this.editedAddress = newVal;
+    }
   },
-  {
-    address: '北京 北京市 朝阳区 来广营镇 清苑路 华贸城8号院5号楼三单元3...',
-    contactName: '林艺涵',
-    contactPhone: '18518559617'
-  }
-])
 
-// 模拟商品列表
-const products = ref([
-  {
-    image: '@/assets/images/bread.jpg',
-    name: '马来西亚oldtown老街场旧街场白咖啡榛果味经典原味',
-    attr: 1,
-    price: 40.8,
-    quantity: 1,
+  computed: {
+    // 计算商品总价
+    totalProductPrice() {
+      return this.products.reduce((acc, product) => acc + (product.unitPrice * product.quantity), 0);
+    },
+
+    // 计算总费用
+    totalCost() {
+      return this.totalProductPrice + this.deliveryService.price;
+    }
   },
-  {
-    image: '@/assets/images/bread.jpg',
-    name: '马来西亚oldtown老街场旧街场白咖啡榛果味经典原味',
-    attr: 2,
-    price: 40.8,
-    quantity: 3,
+
+  methods: {
+    // 减少商品数量
+    decreaseQuantity(index) {
+      if (this.products[index].quantity > 1) {
+        this.products[index].quantity--;
+      }
+    },
+
+    // 增加商品数量
+    increaseQuantity(index) {
+      this.products[index].quantity++;
+    },
+
+    // 返回上一页
+    goBack() {
+      console.log('返回上一页');
+    },
+
+    // 提交订单
+    async submitOrder() {
+      if (this.loading) return;
+
+      this.loading = true;
+      try {
+        const response = await axios.post('/api/api/pay/create_pay_order', {
+          cartDetailIds: this.cartDetailIds,
+          userId: this.$store.state.UserModules.userId
+        }, {
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        });
+
+        this.alipayHtml = response.data.data;
+        this.showAlipayPage = true;
+
+        // 延迟执行渲染，确保DOM已更新
+        this.$nextTick(() => {
+          this.renderAlipayPage();
+        });
+      } catch (error) {
+        callError('创建支付订单失败，请稍后重试');
+        console.error('创建支付订单失败:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    renderAlipayPage() {
+      const container = this.$refs.alipayContainer;
+      container.innerHTML = this.alipayHtml;
+
+      const scripts = container.querySelectorAll('script');
+      scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr =>
+          newScript.setAttribute(attr.name, attr.value)
+        );
+        newScript.textContent = oldScript.textContent;
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    },
+
+    async fetchCart() {
+      try {
+        const userId = this.$store.state.UserModules.userId;
+        console.log(userId, this.$store.state.UserModules.token)
+        const response = await axios.get('/api/api/cart/list', {
+          params: { userId },
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        });
+        this.carts = response.data.data.records || [];
+        console.log(this.carts)
+        // 筛选products
+        const paramArray = this.$route.query.cartDetailIds || [];
+        this.cartDetailIds = Array.isArray(paramArray)
+          ? paramArray.map(Number)
+          : [Number(paramArray)];
+
+        this.products = this.carts.filter(item =>
+          this.cartDetailIds.includes(item.detailId)
+        );
+      } catch (error) {
+        callError('获取购物车列表失败，请稍后重试');
+        console.error('获取购物车列表失败:', error);
+      }
+    },
+
+    startEditing() {
+      this.editedAddress = this.address;
+      this.isEditing = true;
+    },
+    cancelEditing() {
+      this.editedAddress = this.address;
+      this.isEditing = false;
+    },
+    saveAddress() {
+      if (!this.editedAddress.trim()) {
+        alert('地址不能为空');
+        return;
+      }
+      this.isEditing = false;
+      this.address = this.editedAddress;
+      this.updateAddr();
+    },
+    async updateAddr() {
+      try {
+        await axios.post('/api/api/user/update', {
+          address: this.address,
+          userId: this.$store.state.UserModules.userId
+        });
+        callSuccess('更新地址成功');
+      } catch (error) {
+        callError('更新地址失败，请稍后重试');
+        console.error('更新地址失败:', error);
+      }
+    },
+  },
+
+
+
+  created() {
+    this.address = this.$store.state.UserModules.userAddr;
+    this.fetchCart();
   }
-])
 
-const categoryList = [
-  '新鲜果蔬',
-  '肉禽蛋类',
-  '海鲜水产',
-  '乳品烘焙',
-  '熟食即食',
-  '冷冻食品',
-  '酒水饮料',
-  '休闲零食',
-  '粮油调味',
-  '日化家居']
-
-// 订单备注
-const orderNote = ref('')
-// 配送服务
-const deliveryService = ref({
-  name: '快递 包邮',
-  price: 0
-})
-// 是否购买退货宝
-const isReturnInsurance = ref(true)
-
-// 减少商品数量
-const decreaseQuantity = (index) => {
-  if (products.value[index].quantity > 1) {
-    products.value[index].quantity--
-  }
-}
-// 增加商品数量
-const increaseQuantity = (index) => {
-  products.value[index].quantity++
-}
-
-// 计算商品总价
-const totalProductPrice = computed(() => {
-  return products.value.reduce((acc, product) => acc + (product.price * product.quantity), 0)
-})
-// 计算总费用
-const totalCost = computed(() => {
-  return totalProductPrice.value + deliveryService.value.price
-})
-// 返回上一页
-const goBack = () => {
-  console.log('返回上一页')
-}
-// 提交订单
-const submitOrder = () => {
-  console.log('提交订单')
 }
 </script>
 
@@ -303,5 +420,81 @@ const submitOrder = () => {
 
 .payment-actions {
   text-align: right;
+}
+
+.payment-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.alipay-container {
+  margin-top: 20px;
+  min-height: 600px;
+  position: relative;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}
+
+.address-card {
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 12px 0;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+  min-height: 44px;
+  transition: all 0.3s ease;
+}
+
+.address-content {
+  margin-right: 60px;
+  word-break: break-all;
+}
+
+.address-form {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  background-color: #fff;
+}
+
+.address-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin-bottom: 15px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
 }
 </style>
