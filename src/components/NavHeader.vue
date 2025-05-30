@@ -49,9 +49,6 @@
   </el-input>
 </div>
 
-      <el-button  @click="logIn" type="primary" style="width: 52px; height: 52px;" circle>
-          未登录
-          </el-button>
     </el-header>
 
     <router-view></router-view>

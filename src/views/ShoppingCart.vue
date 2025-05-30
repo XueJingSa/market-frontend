@@ -57,6 +57,7 @@
               :min="1" 
               :max="item.stock"
               class="quantity-input"
+              @change="handleQuantityChange(item)"
             />
             <el-button 
               :disabled="item.quantity >= item.stock" 
@@ -146,7 +147,7 @@ export default {
           price: item.unitPrice,
           quantity: item.quantity,
           stockStatus: item.stockStatus,
-          stock: item.stockStatus === '库存充足' ? 999 : 0,
+          stock: item.stockStatus === '库存充足' ? 9999 : 9999,
           description: item.productName,
           checked: true,
           available: item.available,
@@ -174,12 +175,6 @@ export default {
     },
     goToDetail(id) {
       this.$router.push({ name: 'ProductDetail', params: { id } })
-    },
-    updateQuantity(id, delta) {
-      const item = this.cartItems.find(i => i.product_id === id)
-      if (item) {
-        item.quantity = Math.max(1, Math.min(item.stock, item.quantity + delta))
-      }
     },
     confirmRemove(id, detail_id) {
       this.$confirm('确定要删除该商品吗？', '提示', { type: 'warning',confirmButtonText: '确定',   // 确认按钮文字
@@ -212,7 +207,6 @@ export default {
       }).catch(() => {});
     },
     async goToCheckout() {
-      
       // 1. 筛选出已勾选的项
       const selectedDetails = this.cartItems
         .filter(item => item.checked)
@@ -227,6 +221,59 @@ export default {
         name: 'CheckoutPage',
         query: { cartDetailIds: selectedDetails }
       });
+    },
+
+    async handleQuantityChange(item) {
+      // 确保数量在有效范围内
+      item.quantity = Math.max(1, Math.min(item.stock, item.quantity))
+      
+      // 显示加载状态
+      const loading = this.$loading({
+        lock: true,
+        text: '正在更新数量...',
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.7)'
+      });
+      
+      try {
+        // 假装加载0.5秒
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const resp = await axios.post('/api/api/cart/updateQuantity', {
+          cartDetailId: item.detail_id,
+          quantity: item.quantity
+        }, {
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
+        });
+        
+        if (resp.data.code === 1) {
+          this.$message.success('修改数量成功');
+        } else {
+          this.$message.error(resp.data.msg || '修改数量失败');
+          // 恢复原数量
+          await this.fetchCart();
+        }
+      } catch (error) {
+        this.$message.error('修改数量失败');
+        console.error(error);
+        // 恢复原数量
+        await this.fetchCart();
+      } finally {
+        loading.close();
+      }
+    },
+
+    async updateQuantity(id, delta) {
+      const item = this.cartItems.find(i => i.product_id === id)
+      if (item) {
+        const newQuantity = Math.max(1, Math.min(item.stock, item.quantity + delta))
+        if (newQuantity !== item.quantity) {
+          item.quantity = newQuantity
+          await this.handleQuantityChange(item)
+        }
+      }
     }
   }
 }

@@ -98,6 +98,11 @@ const routes = [
         name: 'AdminOrder',
         component: () => import('@/views/AdminOrderManagement.vue')
       },
+      {
+        path: '/commentsManagement',
+        name: 'CommentsManagement',
+        component: () => import('@/views/CommentsManagement.vue')
+      },
     ]
   },
 ]

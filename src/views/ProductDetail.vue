@@ -1,117 +1,143 @@
 <template>
-  <div class="product-detail">
-    <!-- 商品主图 -->
-    <div class="image-section">
-      <img 
-        :src="product.image_url || 'https://via.placeholder.com/600x600.png?text=Product+Image'" 
-        class="product-image"
-        alt="商品主图"
-      />
-    </div>
-
-    <!-- 商品信息 -->
-    <div class="info-section">
-      <h1 class="product-name">{{ product.name }}</h1>
-      
-      <div class="meta-info">
-        <el-tag type="info">{{ categoryName }}</el-tag>
-        <el-tag v-if="product.isDiscontinued === 1" type="danger" style="margin-left: 8px;">已下架</el-tag>
-        <span class="create-time">上架时间：{{ formatTime(product.create_time) }}</span>
-      </div>
-
-      <div class="price-stock">
-        <div class="price">¥{{ product.price }}</div>
-        <div class="stock" :class="stockStatus">
-          {{ product.stockStatus }}
+  <div class="product-detail-container">
+    <div class="product-detail-card">
+      <!-- 商品主图 -->
+      <div class="image-section">
+        <div class="image-wrapper">
+          <img 
+            :src="product.image_url || 'https://via.placeholder.com/600x600.png?text=Product+Image'" 
+            class="product-image"
+            alt="商品主图"
+          />
         </div>
       </div>
 
-      <el-divider />
+      <!-- 商品信息 -->
+      <div class="info-section">
+        <div class="info-header">
+          <h1 class="product-name">{{ product.name }}</h1>
+          
+          <div class="meta-info">
+            <el-tag type="info" effect="plain">{{ categoryName }}</el-tag>
+            <el-tag v-if="product.isDiscontinued === 1" type="danger" effect="dark" style="margin-left: 8px;">已下架</el-tag>
+            <span class="create-time">上架时间：{{ formatTime(product.create_time) }}</span>
+          </div>
+        </div>
 
-      <div class="description">
-        <h3>商品描述</h3>
-        <p>{{ product.description || '暂无详细描述' }}</p>
-      </div>
+        <div class="price-stock-container">
+          <div class="price-box">
+            <span class="price-symbol">¥</span>
+            <span class="price-value">{{ product.price }}</span>
+          </div>
+          <div class="stock" :class="stockStatus">
+            {{ product.stockStatus }}
+          </div>
+        </div>
 
-      <div class="action-bar">
-        <el-input-number 
-          v-model="quantity"
-          :min="1" 
-          :max="50"
-          size="large"
-        />
-        <el-button 
-          type="primary" 
-          size="large"
-          :disabled="product.stockStatus == '无库存' || product.isDiscontinued === 1"
-          @click="addToCart"
-        >
-          {{ product.stockStatus == '无库存' ? '已售罄' : (product.isDiscontinued === 1 ? '已下架' : '加入购物车') }}
-        </el-button>
+        <el-divider />
+
+        <div class="description-section">
+          <h3 class="section-title">商品描述</h3>
+          <p class="description-content">{{ product.description || '暂无详细描述' }}</p>
+        </div>
+
+        <div class="action-bar">
+          <div class="quantity-selector">
+            <span class="quantity-label">数量</span>
+            <el-input-number 
+              v-model="quantity"
+              :min="1" 
+              :max="99"
+              size="large"
+              controls-position="right"
+            />
+          </div>
+          <div class="button-group">
+            <el-button 
+              type="primary" 
+              size="large"
+              :disabled="product.stockStatus == '无库存' || product.isDiscontinued === 1"
+              @click="addToCart"
+              class="cart-button"
+            >
+              <i class="el-icon-shopping-cart-2 button-icon"></i>
+              {{ product.stockStatus == '无库存' ? '已售罄' : (product.isDiscontinued === 1 ? '已下架' : '加入购物车') }}
+            </el-button>
+            <el-button 
+              type="default" 
+              @click="$router.go(-1)"
+              class="back-button"
+              size="large"
+            >
+              <i class="el-icon-back button-icon"></i>
+              返回
+            </el-button>
+          </div>
+        </div>
       </div>
     </div>
-
+    
     <!-- 评论区域 -->
     <div class="comment-wrapper">
-    <div class="comment-section">
-  <h2 class="comment-title">商品评价（{{filteredComments.length}}）</h2>
-  
-  <!-- 评论列表 -->
-  <div class="comment-list" v-if="filteredComments.length > 0">
-  <div 
-    class="comment-item" 
-    v-for="comment in filteredComments" 
-    :key="comment.commentId"
-  >
-      <div class="comment-header">
-        <img :src="comment.userAvatar || 'https://via.placeholder.com/40x40'" class="avatar">
-        <div class="user-info">
-          <span class="username">{{ comment.userName }}</span>
-          <span class="time">{{ comment.createTime }}</span>
-        </div>
-        <el-button 
-          v-if="comment.canDelete"
-          size="mini" 
-          type="danger" 
-          plain
-          @click="deleteComment(comment.commentId)"
-          class="delete-btn"
-        >
-          删除
-        </el-button>
-      </div>
-      <div class="comment-content">{{ comment.comment }}</div>
-    </div>
-  </div>
-  <el-empty v-else description="还没有人评论哦，快来抢沙发吧～"></el-empty>
-
-      <!-- 发表评论 -->
-      <div class="comment-form">
-        <div class="form-header">发表你的评价</div>
-        <el-input
-          type="textarea"
-          :rows="4"
-          placeholder="写下您的真实体验，帮助更多人选购（200字以内）"
-          v-model="newComment"
-          maxlength="200"
-          show-word-limit
-          resize="none"
-          class="comment-input"
-        ></el-input>
-        <div class="form-footer">
-          <el-button 
-            type="primary" 
-            @click="submitComment"
-            :disabled="!newComment.trim()"
-            class="submit-btn"
-            size="medium"
+      <div class="comment-section">
+        <h2 class="comment-title">商品评价（{{filteredComments.length}}）</h2>
+        
+        <!-- 评论列表 -->
+        <div class="comment-list" v-if="filteredComments.length > 0">
+          <div 
+            class="comment-item" 
+            v-for="comment in filteredComments" 
+            :key="comment.commentId"
           >
-            提交评价
-          </el-button>
+            <div class="comment-header">
+              <img :src="comment.userAvatar || 'https://via.placeholder.com/40x40'" class="avatar">
+              <div class="user-info">
+                <span class="username">{{ comment.userName }}</span>
+                <span class="time">{{ comment.createTime }}</span>
+              </div>
+              <el-button 
+                v-if="comment.canDelete"
+                size="mini" 
+                type="danger" 
+                plain
+                @click="deleteComment(comment.commentId)"
+                class="delete-btn"
+              >
+                删除
+              </el-button>
+            </div>
+            <div class="comment-content">{{ comment.comment }}</div>
+          </div>
+        </div>
+        <el-empty v-else description="还没有人评论哦，快来抢沙发吧～"></el-empty>
+
+        <!-- 发表评论 -->
+        <div class="comment-form">
+          <div class="form-header">发表你的评价</div>
+          <el-input
+            type="textarea"
+            :rows="4"
+            placeholder="写下您的真实体验，帮助更多人选购（200字以内）"
+            v-model="newComment"
+            maxlength="200"
+            show-word-limit
+            resize="none"
+            class="comment-input"
+          ></el-input>
+          <div class="form-footer">
+            <el-button 
+              type="primary" 
+              @click="submitComment"
+              :disabled="!newComment.trim()"
+              class="submit-btn"
+              size="medium"
+            >
+              提交评价
+            </el-button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
   </div>
 </template>
 
@@ -311,110 +337,276 @@ async deleteComment(commentId) {
 </script>
 
 <style scoped>
-.product-detail {
-  max-width: 1200px;
-  margin: 20px auto;
+/* 新的商品详情样式 */
+.product-detail-container {
   padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.product-detail-card {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  grid-template-columns: minmax(300px, 1fr) minmax(400px, 1.2fr);
+  gap: 30px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-bottom: 30px;
 }
 
 .image-section {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f8f8;
+}
+
+.image-wrapper {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.image-wrapper:hover {
+  transform: scale(1.02);
 }
 
 .product-image {
   max-width: 100%;
-  height: 500px;
+  max-height: 550px;
   object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .info-section {
-  padding: 20px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-header {
+  margin-bottom: 24px;
 }
 
 .product-name {
   font-size: 24px;
-  color: #333;
-  margin-bottom: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  line-height: 1.3;
 }
 
 .meta-info {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .create-time {
-  color: #666;
-  font-size: 14px;
+  color: #909399;
+  font-size: 13px;
+  margin-left: 4px;
 }
 
-.price-stock {
+.price-stock-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.price-box {
   display: flex;
   align-items: baseline;
-  gap: 20px;
-  margin: 25px 0;
 }
 
-.price {
+.price-symbol {
+  font-size: 20px;
   color: #e4393c;
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+.price-value {
   font-size: 36px;
+  color: #e4393c;
   font-weight: 700;
 }
 
 .stock {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-align: center;
+  min-width: 80px;
 }
-.stock.in-stock { background: #f0f9eb; color: #67c23a; }
-.stock.low-stock { background: #fdf6ec; color: #e6a23c; }
-.stock.out-of-stock { background: #fef0f0; color: #f56c6c; }
 
-.description {
-  color: #666;
-  line-height: 1.6;
-  margin: 25px 0;
+.stock.in-stock { 
+  background: #f0f9eb; 
+  color: #67c23a; 
+  border: 1px solid #e1f3d8;
 }
-.description h3 {
-  color: #333;
-  margin-bottom: 10px;
+
+.stock.low-stock { 
+  background: #fdf6ec; 
+  color: #e6a23c;
+  border: 1px solid #faecd8;
+}
+
+.stock.out-of-stock { 
+  background: #fef0f0; 
+  color: #f56c6c;
+  border: 1px solid #fde2e2;
+}
+
+.description-section {
+  margin: 16px 0;
+}
+
+.section-title {
+  font-size: 16px;
+  color: #303133;
+  margin-bottom: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.section-title::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: #409eff;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.description-content {
+  color: #606266;
+  line-height: 1.8;
+  font-size: 15px;
+  white-space: pre-line;
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  min-height: 100px;
 }
 
 .action-bar {
-  display: flex;
-  gap: 20px;
-  margin-top: 30px;
+  margin-top: auto;
+  padding-top: 20px;
 }
-.action-bar .el-input-number {
-  width: 150px;
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.quantity-label {
+  margin-right: 16px;
+  font-size: 16px;
+  color: #606266;
+}
+
+.button-group {
+  display: flex;
+  gap: 16px;
+}
+
+.cart-button {
+  flex: 2;
+  height: 50px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+}
+
+.cart-button:not([disabled]):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+}
+
+.back-button {
+  flex: 1;
+  height: 50px;
+  border-radius: 25px;
+}
+
+.button-icon {
+  margin-right: 4px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .product-detail-card {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  .image-section {
+    max-height: 500px;
+  }
+  
+  .info-section {
+    padding: 30px;
+  }
 }
 
 @media (max-width: 768px) {
-  .product-detail {
-    grid-template-columns: 1fr;
-    padding: 10px;
-    gap: 20px;
+  .product-detail-container {
+    padding: 15px;
   }
   
-  .product-image {
-    height: 300px;
+  .product-detail_card {
+    border-radius: 12px;
   }
   
-  .price {
+  .image-section {
+    max-height: 400px;
+  }
+  
+  .info-section {
+    padding: 20px;
+  }
+  
+  .product-name {
+    font-size: 22px;
+  }
+  
+  .price-value {
     font-size: 28px;
   }
   
-  .action-bar {
+  .button-group {
     flex-direction: column;
   }
+  
+  .cart-button, .back-button {
+    width: 100%;
+  }
 }
+
+/* 保留原有样式... */
 .comment-section {
   margin-top: 40px;
   padding: 24px;
