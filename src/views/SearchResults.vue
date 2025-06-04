@@ -82,7 +82,7 @@
 
     <!-- 商品展示 -->
     <div class="product-grid">
-      <div class="product-card" v-for="prod in products" :key="prod.product_id">
+      <div class="product-card" v-show="prod.isDiscontinued === 0" v-for="prod in products" :key="prod.product_id">
     <!-- 已下架 Badge -->
     <div v-if="prod.isDiscontinued === 1" class="badge-overlay">
       <el-tag type="danger">已下架</el-tag>
