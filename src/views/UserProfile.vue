@@ -5,18 +5,23 @@
         style="cursor: pointer;" />
       <!-- file input -->
       <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none;" accept="image/*" />
-      <div class="user-details">
-        <div v-if="isLoggedIn" class="nickname">{{ this.$store.state.UserModules.userName }}</div>
-        <router-link v-else to="/login" class="login-text">登录</router-link>
-        <div v-if="isLoggedIn" class="address-section">
-          <span @click="openAddressDialog">收货地址</span>
-          <el-dialog v-model="showAddressDialog" title="修改收货地址">
-            <el-input v-model="tempAddress" placeholder="请输入新地址" type="textarea" :rows="3" />
-            <div class="dialog-actions" style="margin-top: 15px;">
-              <el-button @click="showAddressDialog = false">取消</el-button>
-              <el-button type="primary" @click="saveAddress">保存修改</el-button>
-            </div>
-          </el-dialog>
+      <div style="display: flex;justify-content: space-between;width: 85%;margin-right: 30px;">
+        <div class="user-details">
+          <div v-if="isLoggedIn" class="nickname">{{ this.$store.state.UserModules.userName }}</div>
+          <router-link v-else to="/login" class="login-text">登录</router-link>
+          <div v-if="isLoggedIn" class="address-section">
+            <span @click="openAddressDialog">收货地址</span>
+            <el-dialog v-model="showAddressDialog" title="修改收货地址">
+              <el-input v-model="tempAddress" placeholder="请输入新地址" type="textarea" :rows="3" />
+              <div class="dialog-actions" style="margin-top: 15px;">
+                <el-button @click="showAddressDialog = false">取消</el-button>
+                <el-button type="primary" @click="saveAddress">保存修改</el-button>
+              </div>
+            </el-dialog>
+          </div>
+        </div>
+        <div v-if="isLoggedIn" class="logout-btn">
+          <el-button type="danger" @click="handleLogout">退出登录</el-button>
         </div>
       </div>
     </div>
@@ -34,10 +39,10 @@
           <span class="count">{{ paidCount }}</span>
           <p>已支付</p>
         </div>
-        <div class="status-item">
+        <!-- <div class="status-item">
           <span class="count">{{ completeCount }}</span>
           <p>已完成</p>
-        </div>
+        </div> -->
         <div class="status-item">
           <span class="count">{{ cancelCount }}</span>
           <p>已取消</p>
@@ -411,6 +416,10 @@ export default {
         console.error('更新地址失败:', error);
       }
     },
+    handleLogout() {
+      this.$store.dispatch('UserModules/clearAllCache');
+      this.$router.push('/login');
+    }
   },
   watch: {
     orders: {
@@ -480,6 +489,7 @@ export default {
   align-items: center;
   margin-bottom: 20px;
   margin-left: 20px;
+  justify-content: space-between;
 }
 
 .user-details {
@@ -540,5 +550,10 @@ export default {
   font-size: 24px;
   font-weight: bold;
   color: #333;
+}
+
+.logout-btn {
+  margin-top: 10px;
+  text-align: right;
 }
 </style>

@@ -20,6 +20,7 @@ const loadUserFromStorage = () => {
     };
   }
 };
+
 export default createStore({
     modules: {
         UserModules: {
@@ -53,18 +54,32 @@ export default createStore({
                 },
                 // 将用户信息保存到本地存储
                 saveUserToStorage(state) {
-                try {
-                    localStorage.setItem('user', JSON.stringify({
-                    userId: state.userId,
-                    token: state.token,
-                    userName: state.userName,
-                    userAddr: state.userAddr,
-                    avatar: state.avatar,
-                    }));
-                } catch (error) {
-                    console.error('Failed to save user to storage:', error);
-                }
+                    try {
+                        localStorage.setItem('user', JSON.stringify({
+                        userId: state.userId,
+                        token: state.token,
+                        userName: state.userName,
+                        userAddr: state.userAddr,
+                        avatar: state.avatar,
+                        }));
+                    } catch (error) {
+                        console.error('Failed to save user to storage:', error);
+                    }
                 },
+                clearAllCache(state) {
+                    // 清空 state
+                    state.userId = 0;
+                    state.token = '';
+                    state.userName = '';
+                    state.userAddr = '';
+                    state.avatar = '';
+                    try {
+                        localStorage.clear(); // 清除所有 localStorage 数据
+                    } catch (error) {
+                        console.error('Failed to clear localStorage:', error);
+                    }
+                    
+                }
             },
             actions: {
                 login({ commit }, { userId, token, userName, userAddr,userAvatar }) {
@@ -74,6 +89,9 @@ export default createStore({
                     commit('setAddr', userAddr);
                     commit('setAvatar',userAvatar);
                 },
+                clearAllCache({ commit }) {
+                    commit('clearAllCache');
+                }
             },
             getters: {
 

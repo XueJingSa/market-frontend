@@ -52,7 +52,12 @@
             <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
           </div>
           <div class="order-actions">
-            <el-button size="mini" @click="cancelOrder(order.orderId)">申请退款</el-button>
+            <el-button v-if="order.status == 'PAY_WAIT'" size="mini"
+              @click="cancelOrder(order.orderId)">取消订单</el-button>
+          </div>
+          <div class="order-actions">
+            <el-button v-if="order.status == 'PAY_SUCCESS'" size="mini"
+              @click="refundOrder(order.orderId)">申请退款</el-button>
           </div>
         </div>
         <!-- 展开/收起按钮 -->
@@ -213,8 +218,10 @@ export default {
             'token': this.$store.state.UserModules.token
           }
         });
+
         this.orders = response.data.data || [];
         this.orders.sort((a, b) => b.createTime - a.createTime);
+        console.log(this.orders);
         // 初始化展开状态数组
         this.orders.forEach(() => {
           this.isExpanded.push(false);
@@ -235,7 +242,7 @@ export default {
       };
       return statusMap[status] || status; // 如果没有匹配，返回原状态
     },
-    async cancelOrder(orderId) {
+    async cancelOrder(id) {
       try {
         await this.$confirm('确定要取消该订单吗？', '提示', {
           confirmButtonText: '确定',
@@ -243,14 +250,18 @@ export default {
           type: 'warning'
         })
 
-        console.log(orderId, this.$store.state.UserModules.token)
-        await axios.post('/api/api/order/refund', {
-          params: { orderId },
-          headers: {
-            'token': this.$store.state.UserModules.token
+        console.log(this.$store.state.UserModules.token)
+        const response = await axios.post(
+          '/api/api/order/cancel',
+          { orderId: String(id) },
+          {
+            headers: {
+              'token': this.$store.state.UserModules.token,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            }
           }
-        })
-
+        );
+        console.log(response.data)
         this.$message.success('订单已取消')
         this.fetchOrders()
       } catch (err) {
@@ -260,6 +271,36 @@ export default {
         }
       }
     },
+    async refundOrder(id) {
+      try {
+        await this.$confirm('确定要申请退款吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        console.log(this.$store.state.UserModules.token)
+        const response = await axios.post(
+          '/api/api/order/refund',
+          { orderId: String(id) },
+          {
+            headers: {
+              'token': this.$store.state.UserModules.token,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            }
+          }
+        );
+        console.log(response.data)
+        this.$message.success('订单已退款')
+        this.fetchOrders()
+      } catch (err) {
+        if (err !== 'cancel') {
+          this.$message.error('退款失败，请稍后再试')
+          console.error('退款失败:', err)
+        }
+      }
+    },
+
   }
 };
 </script>
