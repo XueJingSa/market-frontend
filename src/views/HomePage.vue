@@ -2,12 +2,7 @@
   <div class="home-page">
     <!-- —— 上方分类栏 —— -->
     <div class="categories-container">
-      <div
-        class="category-item"
-        v-for="cat in categories"
-        :key="cat.id"
-        @click="goCategory(cat.name)"
-      >
+      <div class="category-item" v-for="cat in categories" :key="cat.id" @click="goCategory(cat.name)">
         <img :src="cat.icon" :alt="cat.name" class="category-icon" />
         <span class="category-name">{{ cat.name }}</span>
       </div>
@@ -17,23 +12,14 @@
     <section class="recommendation">
       <h2 class="section-title">推荐商品</h2>
       <div class="product-grid">
-        <div
-      class="product-card"
-      v-for="prod in products"
-      :key="prod.product_id"
-      :class="{ 'discontinued': prod.isDiscontinued === 1 }"
-    >
-      <!-- 已下架遮罩 -->
-      <div v-if="prod.isDiscontinued === 1" class="badge-off">已下架</div>
+        <div class="product-card" v-for="prod in products" :key="prod.product_id"
+          :class="{ 'discontinued': prod.isDiscontinued === 1 }">
+          <!-- 已下架遮罩 -->
+          <div v-if="prod.isDiscontinued === 1" class="badge-off">已下架</div>
 
-      <img
-        :src="prod.image_url"
-        :alt="prod.name"
-        class="product-image"
-        @click="goToDetail(prod.product_id)"
-      />
+          <img :src="prod.image_url" :alt="prod.name" class="product-image" @click="goToDetail(prod.product_id)" />
 
-      <div class="product-info">
+          <div class="product-info">
             <div class="product-meta">
               <span class="product-category">{{ getCategoryName(prod.category) }}</span>
               <span class="product-time">{{ formatTime(prod.create_time) }}</span>
@@ -45,22 +31,16 @@
             <div class="product-bottom">
               <div class="price-stock">
                 <span class="product-price">¥{{ prod.price.toFixed(2) }}</span>
-                <span
-                  class="product-stock"
-                  :class="{
-                    'low-stock': prod.stock === -1,
-                    'in-stock': prod.stock === -2,
-                    'out-stock': prod.stock === 0
-                  }"
-                >
+                <span class="product-stock" :class="{
+                  'low-stock': prod.stock === -1,
+                  'in-stock': prod.stock === -2,
+                  'out-stock': prod.stock === 0
+                }">
                   {{ stockText(prod.stock) }}
                 </span>
               </div>
-              <button
-                class="add-btn"
-                @click="addToCart(prod)"
-                :disabled="prod.stock === 0 || prod.isDiscontinued === 1"
-              >
+              <button class="add-btn" @click="addToCart(prod)"
+                :disabled="prod.stock === 0 || prod.isDiscontinued === 1">
                 加入购物车
               </button>
             </div>
@@ -294,6 +274,11 @@ export default {
     };
   },
   async created() {
+    if (!this.$store.state.UserModules.token) {
+      // 跳转到登录页面
+      this.$router.push('/login');
+      return;
+    }
     await this.fetchRecommendations()
   },
   methods: {
@@ -320,16 +305,16 @@ export default {
 
         this.products = resp.data.data.records
         this.products = resp.data.data.records.map(item => ({
-        product_id: item.productId,
-        name: item.name,
-        category: item.category,
-        price: item.price,
-        stock: item.stock,
-        description: item.description,
-        image_url: item.imageUrl,
-        create_time: item.createTime,
-        isDiscontinued: item.isDiscontinued
-      }))
+          product_id: item.productId,
+          name: item.name,
+          category: item.category,
+          price: item.price,
+          stock: item.stock,
+          description: item.description,
+          image_url: item.imageUrl,
+          create_time: item.createTime,
+          isDiscontinued: item.isDiscontinued
+        }))
       } catch (err) {
         this.$message.error('获取推荐商品失败')
       }
@@ -358,18 +343,18 @@ export default {
             return true;
           }
         });
-        
+
         const response = await axios.post('/api/api/cart/add', {
           // user_id: this.$store.state.UserModules.userId,
           productId: prod.product_id,
           num: parseInt(quantity),
-          unitPrice:prod.price
+          unitPrice: prod.price
         },
-        {
-          headers: {
-            'token': this.$store.state.UserModules.token
-          }
-        });
+          {
+            headers: {
+              'token': this.$store.state.UserModules.token
+            }
+          });
 
         if (response.data.code === 1) {
           this.$message.success('加入购物车成功');
@@ -389,7 +374,7 @@ export default {
     formatTime(timeStr) {
       if (!timeStr) return '';
       const date = new Date(timeStr);
-      return `${date.getMonth()+1}月${date.getDate()}日上架`;
+      return `${date.getMonth() + 1}月${date.getDate()}日上架`;
     }
   }
 };
@@ -422,6 +407,7 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
 }
+
 .category-item:hover {
   transform: translateY(-6px);
 }
@@ -436,6 +422,7 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border: 2px solid #e0f2fe;
 }
+
 .category-name {
   margin-top: 12px;
   font-size: 16px;
@@ -443,13 +430,14 @@ export default {
   font-weight: 600;
   text-align: center;
   white-space: nowrap;
-  
+
 }
 
 /* —— 推荐商品区 —— */
 .recommendation {
   margin-top: 16px;
 }
+
 .section-title {
   font-size: 22px;
   font-weight: bold;
@@ -474,6 +462,7 @@ export default {
   flex-direction: column;
   transition: transform 0.2s;
 }
+
 .product-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -488,9 +477,11 @@ export default {
   cursor: pointer;
   transition: opacity 0.3s;
 }
+
 .product-image:hover {
   opacity: 0.9;
 }
+
 .product-info {
   padding: 12px;
   display: flex;
@@ -543,6 +534,7 @@ export default {
   font-size: 12px;
   color: #67c23a;
 }
+
 .product-stock.low-stock {
   color: #e6a23c;
 }
@@ -556,9 +548,11 @@ export default {
   cursor: pointer;
   transition: background 0.3s;
 }
+
 .add-btn:hover {
   background-color: #307fd6;
 }
+
 .add-btn:disabled {
   background-color: #c0c4cc;
   cursor: not-allowed;
@@ -570,35 +564,50 @@ export default {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
 @media screen and (max-width: 768px) {
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .category-item {
     width: 80px;
   }
+
   .category-icon {
     width: 80px;
     height: 80px;
   }
 }
+
 @media screen and (max-width: 480px) {
   .product-grid {
     grid-template-columns: 1fr;
   }
+
   .category-item {
     width: 70px;
   }
+
   .category-icon {
     width: 70px;
     height: 70px;
   }
 }
+
 .product-stock {
   font-size: 12px;
 }
-.product-stock.low-stock { color: #e6a23c; }
-.product-stock.in-stock { color: #67c23a; }
-.product-stock.out-stock { color: #999; }
 
+.product-stock.low-stock {
+  color: #e6a23c;
+}
+
+.product-stock.in-stock {
+  color: #67c23a;
+}
+
+.product-stock.out-stock {
+  color: #999;
+}
 </style>
