@@ -135,15 +135,22 @@ export default {
     },
     applyFilters() {
       let filtered = [...this.allOrders]
-
+      const statusMap = {
+        0: 'PAY_WAIT',
+        1: 'PAY_SUCCESS',
+        2: 'DEAL_DONE',
+        3: 'CLOSE',
+      };
+      // const status = ['待支付', '已支付', '已完成', '已取消'];
       if (this.searchForm.orderId) {
         filtered = filtered.filter(o => o.orderId.includes(this.searchForm.orderId))
       }
       if (this.searchForm.userId) {
         filtered = filtered.filter(o => o.userId.toString() === this.searchForm.userId.toString())
       }
+      console.log(statusMap[this.searchForm.status])
       if (this.searchForm.status !== '') {
-        filtered = filtered.filter(o => String(o.status) === this.searchForm.status)
+        filtered = filtered.filter(o => String(o.status) === statusMap[this.searchForm.status])
       }
 
       this.total = filtered.length

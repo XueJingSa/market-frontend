@@ -39,6 +39,10 @@
           <p>已完成</p>
         </div>
         <div class="status-item">
+          <span class="count">{{ cancelCount }}</span>
+          <p>已取消</p>
+        </div>
+        <div class="status-item">
           <span class="count">{{ refundCount }}</span>
           <p>退款/售后</p>
         </div>
@@ -81,6 +85,7 @@ export default {
       paidCount: 0,
       completeCount: 0,
       refundCount: 0,
+      cancelCount: 0,
       showAddressDialog: false,
       tempAddress: '',
       avatars: [
@@ -164,10 +169,12 @@ export default {
             'token': this.$store.state.UserModules.token
           },
         });
-        console.log(response.data)
+        // console.log(response.data)
         if (response.data.code === 1) {
           callSuccess('头像上传成功！');
           this.avatarUrl = response.data.data;
+          this.$store.commit('UserModules/setAvatar', this.avatarUrl);
+          console.log(this.avatarUrl);
         } else {
           callError(response.data.message || '上传失败');
         }
@@ -329,6 +336,9 @@ export default {
           case 'DEAL_DONE':
             this.completeCount++;
             break;
+          case 'CLOSE':
+            this.cancelCount++;
+            break;
           default:
             console.warn('未知订单状态:', order.status);
         }
@@ -348,7 +358,7 @@ export default {
         this.orders = response.data.data || [];
         console.log(this.orders)
 
-        callSuccess('获取订单成功')
+        // callSuccess('获取订单成功')
         // 移进去
         this.formatOrdersTime();
         this.updateOrderStatusCounts();
@@ -394,6 +404,7 @@ export default {
             'token': this.$store.state.UserModules.token
           }
         });
+        this.$store.commit('UserModules/setAddr', this.address);
         callSuccess('更新地址成功');
       } catch (error) {
         callError('更新地址失败，请稍后重试');
@@ -428,7 +439,8 @@ export default {
     }
     console.log(this.$store.state.UserModules.userName);
     this.address = this.$store.state.UserModules.userAddr;
-    console.log(this.address);
+    this.avatarUrl = this.$store.state.UserModules.avatar;
+    console.log(this.address, this.avatarUrl);
     this.fetchOrders();
   },
 

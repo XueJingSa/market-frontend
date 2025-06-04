@@ -188,6 +188,9 @@ export default {
     goShopping() {
       this.$router.push('/home')
     },
+    goBack() {
+      this.$router.push('/profile')
+    },
     formatTime(timestamp) {
       const date = new Date(timestamp);
 

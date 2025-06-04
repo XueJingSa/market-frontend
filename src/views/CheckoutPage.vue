@@ -284,6 +284,7 @@ export default {
             'token': this.$store.state.UserModules.token
           }
         });
+        this.$store.commit('UserModules/setAddr', this.address);
         callSuccess('更新地址成功');
       } catch (error) {
         callError('更新地址失败，请稍后重试');
