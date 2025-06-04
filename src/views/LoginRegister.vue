@@ -119,7 +119,7 @@ export default {
 
           this.$store.dispatch('UserModules/login', { userId, token, userName, userAddr, userAvatar });
 
-          console.log(this.$store.state.UserModules.token, this.$store.state.UserModules.userId)
+          console.log(this.$store.state.UserModules.token, this.$store.state.UserModules.userId, this.$store.state.UserModules.userName)
           if (this.isAdmin && userRole == 'Admin')
             this.$router.push('/admin')
           else

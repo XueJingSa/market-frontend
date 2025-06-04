@@ -389,8 +389,8 @@ export default {
         await axios.post('/api/api/user/update', {
           address: this.address,
           userId: this.$store.state.UserModules.userId
-        },{
-          headers:{
+        }, {
+          headers: {
             'token': this.$store.state.UserModules.token
           }
         });
@@ -426,6 +426,7 @@ export default {
       this.$router.push('/login');
       return;
     }
+    console.log(this.$store.state.UserModules.userName);
     this.address = this.$store.state.UserModules.userAddr;
     console.log(this.address);
     this.fetchOrders();
