@@ -214,7 +214,7 @@ export default {
           }
         });
         this.orders = response.data.data || [];
-
+        this.orders.sort((a, b) => b.createTime - a.createTime);
         // 初始化展开状态数组
         this.orders.forEach(() => {
           this.isExpanded.push(false);
@@ -242,7 +242,8 @@ export default {
           cancelButtonText: '取消',
           type: 'warning'
         })
-        console.log(orderId)
+
+        console.log(orderId, this.$store.state.UserModules.token)
         await axios.post('/api/api/order/refund', {
           params: { orderId },
           headers: {

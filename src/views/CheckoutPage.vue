@@ -215,10 +215,14 @@ export default {
     },
 
     renderAlipayPage() {
-      const container = this.$refs.alipayContainer;
-      container.innerHTML = this.alipayHtml;
+      const newWindow = window.open('', '_blank');
+      newWindow.document.write(this.alipayHtml);
+      newWindow.document.close();
+      // const container = this.$refs.alipayContainer;
+      // container.innerHTML = this.alipayHtml;
 
-      const scripts = container.querySelectorAll('script');
+      // const scripts = container.querySelectorAll('script');
+      const scripts = newWindow.document.querySelectorAll('script');
       scripts.forEach(oldScript => {
         const newScript = document.createElement('script');
         Array.from(oldScript.attributes).forEach(attr =>
