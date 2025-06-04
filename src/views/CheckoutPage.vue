@@ -174,13 +174,14 @@ export default {
 
     // 返回上一页
     goBack() {
-      console.log('返回上一页');
+      this.$router.push('/cart');
+      return;
     },
 
     // 提交订单
     async submitOrder() {
       if (this.loading) return;
-
+      console.log(this.cartDetailIds);
       this.loading = true;
       try {
         const response = await axios.post('/api/api/pay/create_pay_order', {
@@ -192,13 +193,19 @@ export default {
           }
         });
 
-        this.alipayHtml = response.data.data;
-        this.showAlipayPage = true;
+        console.log(response.data);
+        if (response.data.code == 1) {
+          this.alipayHtml = response.data.data;
+          this.showAlipayPage = true;
 
-        // 延迟执行渲染，确保DOM已更新
-        this.$nextTick(() => {
-          this.renderAlipayPage();
-        });
+          // 延迟执行渲染，确保DOM已更新
+          this.$nextTick(() => {
+            this.renderAlipayPage();
+          });
+        } else {
+          callError(response.data.msg);
+        }
+
       } catch (error) {
         callError('创建支付订单失败，请稍后重试');
         console.error('创建支付订单失败:', error);
@@ -233,7 +240,7 @@ export default {
           }
         });
         this.carts = response.data.data.records || [];
-        console.log(this.carts)
+        // console.log(this.carts)
         // 筛选products
         const paramArray = this.$route.query.cartDetailIds || [];
         this.cartDetailIds = Array.isArray(paramArray)
@@ -243,6 +250,7 @@ export default {
         this.products = this.carts.filter(item =>
           this.cartDetailIds.includes(item.detailId)
         );
+        // console.log(this.products);
       } catch (error) {
         callError('获取购物车列表失败，请稍后重试');
         console.error('获取购物车列表失败:', error);
@@ -271,6 +279,10 @@ export default {
         await axios.post('/api/api/user/update', {
           address: this.address,
           userId: this.$store.state.UserModules.userId
+        }, {
+          headers: {
+            'token': this.$store.state.UserModules.token
+          }
         });
         callSuccess('更新地址成功');
       } catch (error) {

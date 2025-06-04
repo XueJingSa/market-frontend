@@ -5,10 +5,10 @@ export default createStore({
         UserModules: {
             namespaced: true,
             state: {
-                userId: 1, // 存储用户ID
-                token:'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyUm9sZSI6IkFkbWluIiwiZXhwIjoxNzQ4MzM3NTkwLCJ1c2VySWQiOjF9.GdezTdY8LNTHq2YJDnTJ9B-n2-AcdwApwSI2FADBdRU',
-                userName: '12345678',
-                userAddr:'北航',
+                userId: 0, // 存储用户ID
+                token:'',
+                userName: '',
+                userAddr:'',
                 avatar:'',
             },
             mutations: {

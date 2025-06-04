@@ -389,6 +389,10 @@ export default {
         await axios.post('/api/api/user/update', {
           address: this.address,
           userId: this.$store.state.UserModules.userId
+        },{
+          headers:{
+            'token': this.$store.state.UserModules.token
+          }
         });
         callSuccess('更新地址成功');
       } catch (error) {
@@ -417,9 +421,14 @@ export default {
     }
   },
   created() {
+    if (!this.$store.state.UserModules.token) {
+      // 跳转到登录页面
+      this.$router.push('/login');
+      return;
+    }
     this.address = this.$store.state.UserModules.userAddr;
+    console.log(this.address);
     this.fetchOrders();
-
   },
 
 };
