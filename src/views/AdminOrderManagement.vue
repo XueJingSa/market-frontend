@@ -12,7 +12,7 @@
         <el-form-item label="订单状态">
           <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 150px">
             <el-option label="全部" value="" />
-            <el-option label="待付款" value="0" />
+            <el-option label="待支付" value="0" />
             <el-option label="已支付" value="1" />
             <el-option label="已完成" value="2" />
             <el-option label="已取消" value="3" />
@@ -33,15 +33,18 @@
       <el-table-column prop="statusDesc" label="状态" min-width="100" />
       <el-table-column prop="createTime" label="创建时间" min-width="180" :formatter="formatTime" />
       <el-table-column prop="payTime" label="支付时间" min-width="180" :formatter="formatTime" />
-      <el-table-column prop="paymentStatus" label="是否支付" min-width="100">
+      <!-- <el-table-column prop="paymentStatus" label="是否支付" min-width="100">
         <template #default="{ row }">
           <span>{{ getOrderStatusText(row.status) }}</span>
         </template>
-      </el-table-column>
+</el-table-column> -->
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
-          <el-button v-if="row.status != CLOSE" type="danger" size="small" @click="cancelOrder(row.orderId)">
+          <el-button v-if="row.status == 'PAY_WAIT'" type="danger" size="small" @click="cancelOrder(row.orderId)">
             取消订单
+          </el-button>
+          <el-button v-if="row.status == 'PAY_SUCCESS'" type="danger" size="small" @click="refundOrder(row.orderId)">
+            退款
           </el-button>
         </template>
       </el-table-column>
@@ -116,6 +119,7 @@ export default {
         }))
 
         this.allOrders = data
+        this.allOrders.sort((a, b) => b.createTime - a.createTime);
         this.applyFilters()
       } catch (err) {
         console.error('订单获取失败:', err)
@@ -158,7 +162,7 @@ export default {
       const end = start + this.pageSize
       this.orders = filtered.slice(start, end)
     },
-    async cancelOrder(orderId) {
+    async cancelOrder(id) {
       try {
         await this.$confirm('确定要取消该订单吗？', '提示', {
           confirmButtonText: '确定',
@@ -166,19 +170,53 @@ export default {
           type: 'warning'
         })
 
-        await axios.post('/api/api/order/cancel', {
-          params: { orderId },
-          headers: {
-            'token': this.$store.state.UserModules.token
+        console.log(this.$store.state.UserModules.token)
+        const response = await axios.post(
+          '/api/api/order/cancel',
+          { orderId: String(id) },
+          {
+            headers: {
+              'token': this.$store.state.UserModules.token,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            }
           }
-        })
-
+        );
+        console.log(response.data)
         this.$message.success('订单已取消')
         this.fetchOrders()
       } catch (err) {
         if (err !== 'cancel') {
           this.$message.error('取消失败，请稍后再试')
           console.error('取消订单失败:', err)
+        }
+      }
+    },
+    async refundOrder(id) {
+      try {
+        await this.$confirm('确定要申请退款吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        console.log(this.$store.state.UserModules.token)
+        const response = await axios.post(
+          '/api/api/order/refund',
+          { orderId: String(id) },
+          {
+            headers: {
+              'token': this.$store.state.UserModules.token,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            }
+          }
+        );
+        console.log(response.data)
+        this.$message.success('订单已退款')
+        this.fetchOrders()
+      } catch (err) {
+        if (err !== 'cancel') {
+          this.$message.error('退款失败，请稍后再试')
+          console.error('退款失败:', err)
         }
       }
     },
