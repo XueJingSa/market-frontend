@@ -36,7 +36,7 @@
                 <img :src="product.imageUrl" alt="product" width="50">
                 <span class="product-name">{{ product.productName }}</span>
               </td>
-              <td>{{ categoryList[product.category] }}</td>
+              <td>{{ categoryList[product.category - 1] }}</td>
               <td>¥{{ product.unitPrice }}</td>
               <td>
                 <el-button size="small" @click="decreaseQuantity(index)">-</el-button>

@@ -52,11 +52,11 @@
             <span>交易状态: {{ getOrderStatusText(order.status) }}</span>
           </div>
           <div class="order-actions">
-            <el-button v-if="order.status == 'PAY_WAIT'" size="mini"
+            <el-button type="danger" plain v-if="order.status == 'PAY_WAIT'" size="mini"
               @click="cancelOrder(order.orderId)">取消订单</el-button>
           </div>
           <div class="order-actions">
-            <el-button v-if="order.status == 'PAY_SUCCESS'" size="mini"
+            <el-button type="danger" plain v-if="order.status == 'PAY_SUCCESS'" size="mini"
               @click="refundOrder(order.orderId)">申请退款</el-button>
           </div>
         </div>
