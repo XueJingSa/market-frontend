@@ -39,10 +39,10 @@
           <span class="count">{{ paidCount }}</span>
           <p>已支付</p>
         </div>
-        <!-- <div class="status-item">
+        <div class="status-item">
           <span class="count">{{ completeCount }}</span>
           <p>已完成</p>
-        </div> -->
+        </div>
         <div class="status-item">
           <span class="count">{{ cancelCount }}</span>
           <p>已取消</p>
@@ -338,7 +338,7 @@ export default {
           case 'PAY_SUCCESS':
             this.paidCount++;
             break;
-          case 'DEAL_DONE':
+          case 'DONE':
             this.completeCount++;
             break;
           case 'CLOSE':

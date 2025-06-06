@@ -14,7 +14,7 @@
       <el-tab-pane label="全部订单" name="all"></el-tab-pane>
       <el-tab-pane label="待支付" name="PAY_WAIT"></el-tab-pane>
       <el-tab-pane label="已支付" name="PAY_SUCCESS"></el-tab-pane>
-      <el-tab-pane label="已完成" name="DEAL_DONE"></el-tab-pane>
+      <el-tab-pane label="已完成" name="DONE"></el-tab-pane>
       <el-tab-pane label="已取消" name="CLOSE"></el-tab-pane>
     </el-tabs>
 
@@ -56,6 +56,8 @@
               @click="cancelOrder(order.orderId)">取消订单</el-button>
           </div>
           <div class="order-actions">
+            <el-button type="success" plain v-if="order.status == 'PAY_SUCCESS'" size="mini"
+              @click="confirmOrder(order.orderId)">确认收货</el-button>
             <el-button type="danger" plain v-if="order.status == 'PAY_SUCCESS'" size="mini"
               @click="refundOrder(order.orderId)">申请退款</el-button>
           </div>
@@ -183,7 +185,7 @@ export default {
       const statusMap = {
         'PAY_WAIT': '待支付',
         'PAY_SUCCESS': '已支付',
-        'DEAL_DONE': '已完成',
+        'DONE': '已完成',
         'CLOSE': '已取消',
       };
       if (this.activeTab === 'all') return '任何状态';
@@ -237,7 +239,7 @@ export default {
       const statusMap = {
         'PAY_WAIT': '待支付',
         'PAY_SUCCESS': '已支付',
-        'DEAL_DONE': '已完成',
+        'DONE': '已完成',
         'CLOSE': '已取消',
       };
       return statusMap[status] || status; // 如果没有匹配，返回原状态
@@ -300,7 +302,42 @@ export default {
         }
       }
     },
+    async confirmOrder(id) {
+      try {
+        await this.$confirm('确认已收货吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
 
+        console.log(this.$store.state.UserModules.token)
+        console.log(id)
+        const response = await axios.get(
+          '/api/api/order/confirm',
+          // { orderId: String(id) },
+          // {
+          //   headers: {
+          //     'token': this.$store.state.UserModules.token,
+          //     'Content-Type': 'application/x-www-form-urlencoded',
+          //   }
+          // }
+          {
+            params: { orderId: String(id) },
+            headers: {
+              'token': this.$store.state.UserModules.token
+            }
+          }
+        );
+        console.log(response.data)
+        this.$message.success('订单已完成')
+        this.fetchOrders()
+      } catch (err) {
+        if (err !== 'cancel') {
+          this.$message.error('确认失败，请稍后再试')
+          console.error('确认失败:', err)
+        }
+      }
+    },
   }
 };
 </script>
