@@ -176,6 +176,7 @@ export default {
     },
     nextPage() {
       const totalPages = Math.ceil(this.orders.length / this.pageSize);
+      console.log(totalPages)
       if (this.page < totalPages) {
         this.page++;
       }
